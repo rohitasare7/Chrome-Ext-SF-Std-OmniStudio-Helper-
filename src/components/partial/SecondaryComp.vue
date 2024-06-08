@@ -29,6 +29,7 @@ const recordTitle = ref('');
 const dataLoading = ref(false);
 const sfHostURL = ref('');
 const queriedObject = ref('');
+const orgIdentifier = ref('');
 
 const omniScriptLoaded = ref('OmniScripts Loaded');
 const flexCardsLoaded = ref('FlexCards Loaded');
@@ -151,19 +152,55 @@ else{
   return null;
 }
 }*/
+function extractValue(url) {
+  const prodPattern = /https:\/\/([^.]+)\.(lightning\.force\.com|my\.salesforce\.com|vf\.force\.com|my\.site\.com)$/;
+  const prodMatch = url.match(prodPattern);
+  if (prodMatch) {
+    return prodMatch[1];
+  }
+
+  const sandboxPattern = /https:\/\/([^.]+)\.sandbox\.(lightning\.force\.com|my\.salesforce\.com|vf\.force\.com|my\.site\.com)$/;
+  const sandboxMatch = url.match(sandboxPattern);
+  if (sandboxMatch) {
+    return sandboxMatch[1];
+  }
+
+  const devPattern = /https:\/\/([^.]+)\.develop\.(lightning\.force\.com|my\.salesforce\.com|vf\.force\.com|my\.site\.com)$/;
+  const devMatch = url.match(devPattern);
+  if (devMatch) {
+    return devMatch[1];
+  }
+
+  const trailblazePattern = /https:\/\/([^-]+)-([^.]+)\.trailblaze\.(lightning\.force\.com|my\.salesforce\.com|vf\.force\.com|my\.site\.com)$/;
+  const trailblazeMatch = url.match(trailblazePattern);
+  if (trailblazeMatch) {
+    return trailblazeMatch[2];
+  }
+
+  return null;
+}
+
+const getOrgSuffix = (recId, type) => {
+  switch (type) {
+    case 'DataRaptor':
+      return `https://${orgIdentifier.value}--vlocity-cmt.vf.force.com/apex/vlocity_cmt__drmapper?id=${recId}`;
+    case 'IntegrationProcedure':
+      return `https://${orgIdentifier.value}--vlocity-cmt.vf.force.com/apex/vlocity_cmt__integrationproceduredesigner?id=${recId}`;
+    default:
+      return null;
+  }
+};
 
 const getSalesforceURL = (recId, type) => {
   const baseURL = `https://${sfHostURL.value}/lightning`;
-
   switch (type) {
     case 'OmniScript':
       return `${baseURL}/cmp/vlocity_cmt__OmniDesignerAuraWrapper?c__recordId=${recId}`;
     case 'FlexCard':
       return `${baseURL}/r/vlocity_cmt__VlocityCard__c/${recId}/view`;
     case 'IntegrationProcedure':
-      return `${baseURL}/r/vlocity_cmt__OmniScript__c/${recId}/view`;
     case 'DataRaptor':
-      return `${baseURL}/r/vlocity_cmt__DRBundle__c/${recId}/view`;
+      return getOrgSuffix(recId, type);
     default:
       return null;
   }
@@ -173,7 +210,9 @@ onMounted(() => {
   let args = new URLSearchParams(location.search.slice(1));
   let sfHost = args.get("host");
   sfHostURL.value = sfHost;
-})
+  orgIdentifier.value = extractValue(`https://${sfHostURL.value}`);
+});
+
 </script>
 
 <template>
@@ -220,8 +259,7 @@ onMounted(() => {
         </template>
         <template #item-Actions="{ Id }">
           <div class="text-center my-1.5">
-            <a :href="getSalesforceURL(Id,queriedObject)"
-              target="_blank">
+            <a :href="getSalesforceURL(Id, queriedObject)" target="_blank">
               <PrimaryButton>Open in SF</PrimaryButton>
             </a>
           </div>
