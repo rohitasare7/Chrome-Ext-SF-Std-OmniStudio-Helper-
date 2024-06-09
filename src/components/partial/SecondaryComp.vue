@@ -95,6 +95,7 @@ const getOmniScriptList = async (isIP) => {
     //console.log('data --> ', JSON.stringify(data));
     data?.records.forEach((record) => {
       record.LastModifiedDateNew = formatDate(record.LastModifiedDate); //format the date time
+      record.iconColor = getIconButtonColor(record.Id);
     });
     recordList.value = data?.records;
     recordTitle.value = isIP ? IPloaded.value : omniScriptLoaded.value;
@@ -119,6 +120,7 @@ const getFlexCardList = async () => {
     //console.log('data --> ', JSON.stringify(data));
     data?.records.forEach((record) => {
       record.LastModifiedDateNew = formatDate(record.LastModifiedDate); //format the date time
+      record.iconColor = getIconButtonColor(record.Id);
     });
     recordList.value = data?.records;
     recordTitle.value = flexCardsLoaded.value;
@@ -143,6 +145,7 @@ const getDataRaptorList = async () => {
     //console.log('data --> ', JSON.stringify(data));
     data?.records.forEach((record) => {
       record.LastModifiedDateNew = formatDate(record.LastModifiedDate); //format the date time
+      record.iconColor = getIconButtonColor(record.Id);
     });
     recordList.value = data?.records;
     recordTitle.value = DRloaded.value;
@@ -173,8 +176,6 @@ const addToFavorite = (Id, Name) => {
 const storageRecList = ref([]);
 // Define the getIconButtonColor method
 const getIconButtonColor = (id) => {
-  console.log('storageRecList --> ' + JSON.stringify(storageRecList));
-  // Check if any item in recordList has the same Id as the provided Id
   const itemExists = storageRecList.value.some(record =>
     record.items.some(item => item.id === id)
   );
@@ -241,13 +242,13 @@ onMounted(async () => {
         <template #item-Name="{ Name }">
           <p class="text-left ml-2">{{ Name }}</p>
         </template>
-        <template #item-Actions="{ Id, Name }">
+        <template #item-Actions="{ Id, Name, iconColor}">
           <div class="flex justify-center text-center items-center my-1.5">
             <a :href="getSalesforceURL(orgIdentifier, sfHostURL, Id, queriedObject)" target="_blank">
               <PrimaryButton>Open in SF</PrimaryButton>
             </a>
             <SVGIconButton @click="addToFavorite(Id, Name)" :icon="Icon_Favorite" :isSquare="false"
-              :color="getIconButtonColor(Id)" class="!p-1.5 ml-2 " title="Add to Favorite" />
+              :color="iconColor" class="!p-1.5 ml-2 " title="Add to Favorite" />
           </div>
         </template>
       </Vue3EasyDataTable>
