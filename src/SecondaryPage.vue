@@ -1,8 +1,9 @@
 <template>
-  
-  <div class="p-5 w-11/12 dark:bg-gray-900 antialiased mx-auto my-6">
-    <ToggleLightDarkMode />
-    <SecondaryComp />
+  <div class="dark:bg-gray-900 py-2">
+    <div class="p-5 w-11/12 antialiased mx-auto">
+      <ToggleLightDarkMode />
+      <SecondaryComp />
+    </div>
   </div>
 </template>
 
@@ -14,7 +15,7 @@ import './assets/index.css';
 export default {
   name: 'App',
   components: {
-    SecondaryComp, 
+    SecondaryComp,
     ToggleLightDarkMode
   }
 }

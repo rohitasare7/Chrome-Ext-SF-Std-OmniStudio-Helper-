@@ -22,7 +22,7 @@ const props = defineProps({
 const recordList = ref([]);
 const itemList = ref([]);
 
-const searchField = ref(["Name"]);
+const searchField = ref(["name"]);
 const searchValue = ref("");
 const sortBy = ref("LastModifiedDate");
 const sortType = "desc";
