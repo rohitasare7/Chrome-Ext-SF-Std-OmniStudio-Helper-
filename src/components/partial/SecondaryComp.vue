@@ -3,11 +3,16 @@
 // import DisplayRecords from '@/components/partial/DisplayRecords';
 import { ref, onMounted } from "vue";
 import { apiVersion, sfConn, formatDate } from "@/assets/helper";
+import { saveRecord } from "@/assets/storageUtil";
+import { extractValue, getSalesforceURL } from "@/assets/globalUtil";
 import PrimaryButton from "../elements/PrimaryButton.vue";
 import TextInput from "../elements/TextInput.vue";
 import LoadingCircle from "../elements/LoadingCircle.vue";
 import TextDesc from "../elements/TextDesc.vue";
 import PrimaryHeading from "../elements/PrimaryHeading.vue";
+import SVGIconButton from "../elements/SVGIconButton.vue";
+import Icon_Favorite from "@/assets/icons/Icon_Favorite.vue";
+import FavoriteTable from './FavoriteTable.vue';
 // Vue3 Easy DataTable
 import Vue3EasyDataTable from "vue3-easy-data-table";
 import "vue3-easy-data-table/dist/style.css";
@@ -41,7 +46,7 @@ const performAPIcallout = (url) => {
     sfConn
       .getSession(sfHostURL.value)
       .then(() => {
-        console.log("getSession inside");
+        // console.log("getSession inside");
         let limitsPromise = sfConn.rest(url);
         limitsPromise
           .then((data) => {
@@ -60,19 +65,30 @@ const performAPIcallout = (url) => {
   });
 };
 
+const ensureVersionHeader = () => {
+  const versionHeader = { text: "Version", value: "vlocity_cmt__Version__c" };
+  const isVersionHeaderPresent = tableHeaders.value.some(header => header.value === versionHeader.value);
+
+  if (!isVersionHeaderPresent) {
+    // Insert versionHeader at the 3rd position (index 2)
+    tableHeaders.value.splice(2, 0, versionHeader);
+  }
+};
+
+//Get OS & IP
 const getOmniScriptList = async (isIP) => {
   dataLoading.value = true;
   queriedObject.value = 'OmniScript';
-  let loadIPCondition = '';
+  let processType = 'OmniScript';
   if (isIP) {
     queriedObject.value = 'IntegrationProcedure';
-    loadIPCondition = `+AND+vlocity_cmt__OmniProcessType__c='Integration Procedure'`;
+    processType = 'Integration Procedure';
   }
   let url =
     "/services/data/v" +
     apiVersion +
-    `/query/?q=SELECT+Id,Name,vlocity_cmt__Version__c,LastModifiedBy.Name,LastModifiedDate+FROM+vlocity_cmt__OmniScript__c+WHERE+vlocity_cmt__IsActive__c=TRUE${loadIPCondition}+ORDER+BY+LastModifiedDate+DESC`;
-
+    `/query/?q=SELECT+Id,Name,vlocity_cmt__Version__c,LastModifiedBy.Name,LastModifiedDate+FROM+vlocity_cmt__OmniScript__c+WHERE+vlocity_cmt__IsActive__c=TRUE+AND+vlocity_cmt__OmniProcessType__c='${processType}'+ORDER+BY+LastModifiedDate+DESC`;
+  // console.log('url --> '+url);
   try {
     const data = await performAPIcallout(url);
     //console.log('data --> ', JSON.stringify(data));
@@ -81,6 +97,7 @@ const getOmniScriptList = async (isIP) => {
     });
     recordList.value = data?.records;
     recordTitle.value = isIP ? IPloaded.value : omniScriptLoaded.value;
+    ensureVersionHeader();
   } catch (error) {
     console.error("Error fetching OmniScript list: ", error);
   }
@@ -88,6 +105,7 @@ const getOmniScriptList = async (isIP) => {
   document.title = isIP ? IPloaded.value : omniScriptLoaded.value;
 };
 
+//Get FlexCards
 const getFlexCardList = async () => {
   dataLoading.value = true;
   queriedObject.value = 'FlexCard';
@@ -103,6 +121,7 @@ const getFlexCardList = async () => {
     });
     recordList.value = data?.records;
     recordTitle.value = flexCardsLoaded.value;
+    ensureVersionHeader();
   } catch (error) {
     console.error("Error fetching getFlexCardList: ", error);
   }
@@ -110,6 +129,7 @@ const getFlexCardList = async () => {
   document.title = flexCardsLoaded.value;
 };
 
+//Get DataRaptor
 const getDataRaptorList = async () => {
   dataLoading.value = true;
   queriedObject.value = 'DataRaptor';
@@ -133,79 +153,24 @@ const getDataRaptorList = async () => {
   document.title = DRloaded.value;
 };
 
-/*
-const getSFURL = (recId, type) => {
-  let sfURL = '';
-if(type == 'OmniScript'){
- return sfURL = `https://${sfHostURL.value}/lightning/cmp/vlocity_cmt__OmniDesignerAuraWrapper?c__recordId=${recId}`;
-}
-else if(type == 'FlexCard'){
- return sfURL = `https://${sfHostURL.value}/lightning/r/vlocity_cmt__VlocityCard__c/${recId}/view`;
-}
-else if(type == 'IntegrationProcedure'){
-  return sfURL = `https://${sfHostURL.value}/lightning/r/vlocity_cmt__OmniScript__c/${recId}/view`;
-}
-else if(type =='DataRaptor'){
-  return sfURL = `https://${sfHostURL.value}/lightning/r/vlocity_cmt__DRBundle__c/${recId}/view`;
-}
-else{
-  return null;
-}
-}*/
-function extractValue(url) {
-  const prodPattern = /https:\/\/([^.]+)\.(lightning\.force\.com|my\.salesforce\.com|vf\.force\.com|my\.site\.com)$/;
-  const prodMatch = url.match(prodPattern);
-  if (prodMatch) {
-    return prodMatch[1];
+const childComponentRef = ref(null);
+//Save records to Favorite
+const addToFavorite = (Id, Name) => {
+  // console.log('queriedObject.value --> '+queriedObject.value);
+  let obj = {
+    type : queriedObject.value,
+    id : Id,
+    name : Name
   }
-
-  const sandboxPattern = /https:\/\/([^.]+)\.sandbox\.(lightning\.force\.com|my\.salesforce\.com|vf\.force\.com|my\.site\.com)$/;
-  const sandboxMatch = url.match(sandboxPattern);
-  if (sandboxMatch) {
-    return sandboxMatch[1];
+  let result = saveRecord(obj, sfHostURL.value);
+  if(result){
+    console.log('inside result');
+    childComponentRef.value.getLatestFavItemList();
   }
-
-  const devPattern = /https:\/\/([^.]+)\.develop\.(lightning\.force\.com|my\.salesforce\.com|vf\.force\.com|my\.site\.com)$/;
-  const devMatch = url.match(devPattern);
-  if (devMatch) {
-    return devMatch[1];
-  }
-
-  const trailblazePattern = /https:\/\/([^-]+)-([^.]+)\.trailblaze\.(lightning\.force\.com|my\.salesforce\.com|vf\.force\.com|my\.site\.com)$/;
-  const trailblazeMatch = url.match(trailblazePattern);
-  if (trailblazeMatch) {
-    return trailblazeMatch[2];
-  }
-
-  return null;
+  
 }
 
-const getOrgSuffix = (recId, type) => {
-  switch (type) {
-    case 'DataRaptor':
-      return `https://${orgIdentifier.value}--vlocity-cmt.vf.force.com/apex/vlocity_cmt__drmapper?id=${recId}`;
-    case 'IntegrationProcedure':
-      return `https://${orgIdentifier.value}--vlocity-cmt.vf.force.com/apex/vlocity_cmt__integrationproceduredesigner?id=${recId}`;
-    default:
-      return null;
-  }
-};
-
-const getSalesforceURL = (recId, type) => {
-  const baseURL = `https://${sfHostURL.value}/lightning`;
-  switch (type) {
-    case 'OmniScript':
-      return `${baseURL}/cmp/vlocity_cmt__OmniDesignerAuraWrapper?c__recordId=${recId}`;
-    case 'FlexCard':
-      return `${baseURL}/r/vlocity_cmt__VlocityCard__c/${recId}/view`;
-    case 'IntegrationProcedure':
-    case 'DataRaptor':
-      return getOrgSuffix(recId, type);
-    default:
-      return null;
-  }
-};
-
+//On page load
 onMounted(() => {
   let args = new URLSearchParams(location.search.slice(1));
   let sfHost = args.get("host");
@@ -242,7 +207,7 @@ onMounted(() => {
   </div>
   <div v-else>
     <div class="mt-4 mb-2" v-if="recordTitle">
-      <PrimaryHeading> {{ recordTitle }}</PrimaryHeading>
+      <PrimaryHeading>Records loaded for <span class="text-blue-600">{{ queriedObject }}</span> </PrimaryHeading>
       <TextDesc>All records are active records</TextDesc>
     </div>
     <div v-if="recordList.length > 0">
@@ -257,16 +222,22 @@ onMounted(() => {
         <template #item-Name="{ Name }">
           <p class="text-left ml-2">{{ Name }}</p>
         </template>
-        <template #item-Actions="{ Id }">
-          <div class="text-center my-1.5">
-            <a :href="getSalesforceURL(Id, queriedObject)" target="_blank">
+        <template #item-Actions="{ Id, Name}">
+          <div class="text-center flex items-center my-1.5">
+            <a :href="getSalesforceURL(orgIdentifier, sfHostURL, Id, queriedObject)" target="_blank">
               <PrimaryButton>Open in SF</PrimaryButton>
             </a>
+            <SVGIconButton @click="addToFavorite(Id,Name)" :icon="Icon_Favorite" :isSquare="false" :color="'gray'" 
+                class="!p-1.5 ml-2 " title="Add to Favorite" />
           </div>
         </template>
       </Vue3EasyDataTable>
     </div>
   </div>
+
+
+  <FavoriteTable v-if="sfHostURL" :sfHost="sfHostURL" :currenObject="queriedObject" ref="childComponentRef" />
+
 </template>
 
 <script>
