@@ -1,6 +1,6 @@
 <script setup>
 
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, defineEmits } from "vue";
 import { fetchRecords, deleteRecord } from "@/assets/storageUtil";
 import { extractValue, getSalesforceURL } from "@/assets/globalUtil";
 import TextInput from "../elements/TextInput.vue";
@@ -13,6 +13,8 @@ import SVGIconButton from "../elements/SVGIconButton.vue";
 // Vue3 Easy DataTable
 import Vue3EasyDataTable from "vue3-easy-data-table";
 import "vue3-easy-data-table/dist/style.css";
+
+const emit = defineEmits(["fireEvent"]);
 
 const props = defineProps({
     sfHost: String,
@@ -49,11 +51,9 @@ const filterItemsByType = async (setDelay = false) => {
     if (setDelay) {
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
-
     // Fetch records
     recordList.value = await fetchRecords(props?.sfHost);
     getCurrentObject();
-
     itemList.value = [];
     for (const record of recordList.value) {
         if (record.type === props?.currenObject) {
@@ -69,6 +69,7 @@ const removeItemById = async (id) => {
     let result = await deleteRecord(id, props?.sfHost);
     if (result) {
         itemList.value = itemList.value.filter(item => item.id !== id);
+        emit('fireEvent', { action: 'deleteItem', recId: id });
         console.log('Item with ID', id, 'removed from itemList');
     }
 

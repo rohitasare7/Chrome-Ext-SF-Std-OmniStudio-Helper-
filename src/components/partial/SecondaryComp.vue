@@ -170,6 +170,15 @@ const addToFavorite = (Id, Name) => {
   if (result) {
     console.log('inside result');
     childComponentRef.value.getLatestFavItemList();
+    setIconColor(Id, 'blue');
+  }
+}
+
+const setIconColor = (Id, Color) => {
+  const recordIndex = recordList.value.findIndex(item => item.Id === Id);
+  if (recordIndex !== -1) {
+    recordList.value[recordIndex].iconColor = Color;
+    console.log('color changed --> ' + recordList.value[recordIndex].iconColor);
   }
 }
 
@@ -188,6 +197,14 @@ const getIconButtonColor = (id) => {
     return 'gray';
   }
 };
+
+const handleEvent = (data) => {
+  console.log('event fired --> ' + JSON.stringify(data));
+  if (data?.action == 'deleteItem') {
+    setIconColor(data?.recId, 'gray');
+    //storageRecList.value = storageRecList.value.filter(item => item.id !== data?.recId);
+  }
+}
 
 //On page load
 onMounted(async () => {
@@ -242,13 +259,13 @@ onMounted(async () => {
         <template #item-Name="{ Name }">
           <p class="text-left ml-2">{{ Name }}</p>
         </template>
-        <template #item-Actions="{ Id, Name, iconColor}">
+        <template #item-Actions="{ Id, Name, iconColor }">
           <div class="flex justify-center text-center items-center my-1.5">
             <a :href="getSalesforceURL(orgIdentifier, sfHostURL, Id, queriedObject)" target="_blank">
               <PrimaryButton>Open in SF</PrimaryButton>
             </a>
-            <SVGIconButton @click="addToFavorite(Id, Name)" :icon="Icon_Favorite" :isSquare="false"
-              :color="iconColor" class="!p-1.5 ml-2 " title="Add to Favorite" />
+            <SVGIconButton @click="addToFavorite(Id, Name)" :icon="Icon_Favorite" :isSquare="false" :color="iconColor"
+              class="!p-1.5 ml-2 " title="Add to Favorite" />
           </div>
         </template>
       </Vue3EasyDataTable>
@@ -256,7 +273,8 @@ onMounted(async () => {
   </div>
 
 
-  <FavoriteTable v-if="sfHostURL" :sfHost="sfHostURL" :currenObject="queriedObject" ref="childComponentRef" />
+  <FavoriteTable v-if="sfHostURL" :sfHost="sfHostURL" :currenObject="queriedObject" ref="childComponentRef"
+    @fireEvent="handleEvent" />
 
 </template>
 
