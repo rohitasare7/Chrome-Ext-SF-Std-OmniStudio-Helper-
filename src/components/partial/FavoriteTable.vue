@@ -30,7 +30,7 @@ const sortType = "desc";
 const tableHeaders = ref([
     { text: "Id", value: "id" },
     { text: "Name", value: "name", sortable: true },
-    { text: "Actions", value: "Actions", width: 200 },
+    { text: "Actions", value: "Actions", width: 300 },
 ]);
 
 const recordTitle = ref('');
@@ -46,14 +46,14 @@ const getCurrentObject = () => {
 
 const filterItemsByType = async (setDelay = false) => {
     // Fetch records after a delay of 3 seconds
-    if(setDelay){
+    if (setDelay) {
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    
+
     // Fetch records
     recordList.value = await fetchRecords(props?.sfHost);
     getCurrentObject();
-    
+
     itemList.value = [];
     for (const record of recordList.value) {
         if (record.type === props?.currenObject) {
@@ -71,7 +71,7 @@ const removeItemById = async (id) => {
         itemList.value = itemList.value.filter(item => item.id !== id);
         console.log('Item with ID', id, 'removed from itemList');
     }
-    
+
 };
 
 const getLatestFavItemList = async () => {
@@ -129,7 +129,7 @@ defineExpose({
                     <p class="text-left ml-2">{{ name }}</p>
                 </template>
                 <template #item-Actions="{ id }">
-                    <div class="text-center flex items-center my-1.5">
+                    <div class="flex justify-center text-center items-center my-1.5">
                         <a :href="getSalesforceURL(orgIdentifier, props?.sfHost, id, props?.currenObject)"
                             target="_blank">
                             <PrimaryButton>Open in SF</PrimaryButton>

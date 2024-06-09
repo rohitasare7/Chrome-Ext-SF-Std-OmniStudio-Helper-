@@ -3,6 +3,7 @@
 // import DisplayRecords from '@/components/partial/DisplayRecords';
 import { ref, onMounted } from "vue";
 import { apiVersion, sfConn, formatDate } from "@/assets/helper";
+import { fetchRecords } from "@/assets/storageUtil";
 import { saveRecord } from "@/assets/storageUtil";
 import { extractValue, getSalesforceURL } from "@/assets/globalUtil";
 import PrimaryButton from "../elements/PrimaryButton.vue";
@@ -27,7 +28,7 @@ const tableHeaders = ref([
   { text: "Version", value: "vlocity_cmt__Version__c" },
   { text: "LastModified By", value: "LastModifiedBy.Name" },
   { text: "LastModified Date", value: "LastModifiedDateNew", sortable: true },
-  { text: "Actions", value: "Actions", width: 200 },
+  { text: "Actions", value: "Actions", width: 300 },
 ]);
 
 const recordTitle = ref('');
@@ -158,24 +159,42 @@ const childComponentRef = ref(null);
 const addToFavorite = (Id, Name) => {
   // console.log('queriedObject.value --> '+queriedObject.value);
   let obj = {
-    type : queriedObject.value,
-    id : Id,
-    name : Name
+    type: queriedObject.value,
+    id: Id,
+    name: Name
   }
   let result = saveRecord(obj, sfHostURL.value);
-  if(result){
+  if (result) {
     console.log('inside result');
     childComponentRef.value.getLatestFavItemList();
   }
-  
 }
 
+const storageRecList = ref([]);
+// Define the getIconButtonColor method
+const getIconButtonColor = (id) => {
+  console.log('storageRecList --> ' + JSON.stringify(storageRecList));
+  // Check if any item in recordList has the same Id as the provided Id
+  const itemExists = storageRecList.value.some(record =>
+    record.items.some(item => item.id === id)
+  );
+  console.log('itemExists --> ' + itemExists);
+  // Return blue color if the item exists, otherwise return gray
+  if (itemExists) {
+    return 'blue';
+  }
+  else {
+    return 'gray';
+  }
+};
+
 //On page load
-onMounted(() => {
+onMounted(async () => {
   let args = new URLSearchParams(location.search.slice(1));
   let sfHost = args.get("host");
   sfHostURL.value = sfHost;
   orgIdentifier.value = extractValue(`https://${sfHostURL.value}`);
+  storageRecList.value = await fetchRecords(sfHostURL.value);
 });
 
 </script>
@@ -222,13 +241,13 @@ onMounted(() => {
         <template #item-Name="{ Name }">
           <p class="text-left ml-2">{{ Name }}</p>
         </template>
-        <template #item-Actions="{ Id, Name}">
-          <div class="text-center flex items-center my-1.5">
+        <template #item-Actions="{ Id, Name }">
+          <div class="flex justify-center text-center items-center my-1.5">
             <a :href="getSalesforceURL(orgIdentifier, sfHostURL, Id, queriedObject)" target="_blank">
               <PrimaryButton>Open in SF</PrimaryButton>
             </a>
-            <SVGIconButton @click="addToFavorite(Id,Name)" :icon="Icon_Favorite" :isSquare="false" :color="'gray'" 
-                class="!p-1.5 ml-2 " title="Add to Favorite" />
+            <SVGIconButton @click="addToFavorite(Id, Name)" :icon="Icon_Favorite" :isSquare="false"
+              :color="getIconButtonColor(Id)" class="!p-1.5 ml-2 " title="Add to Favorite" />
           </div>
         </template>
       </Vue3EasyDataTable>
