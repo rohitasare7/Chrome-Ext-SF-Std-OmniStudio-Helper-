@@ -16,7 +16,7 @@ window.addEventListener('load', function () {
   button.id = 'sfHelperBtn';
   button.innerText = 'SF Helper';
   button.style.padding = '6px 13px';
-  button.style.backgroundColor = 'rgb(25 73 207)';
+  button.style.background = '#1949CF';
   button.style.color = '#fff';
   button.style.border = 'none';
   button.style.borderRadius = '6px';
@@ -40,18 +40,27 @@ window.addEventListener('load', function () {
 function getGlobalActionUL(button) {
   setTimeout(() => {
     var globalActionUL = document.getElementsByClassName("slds-global-actions")[0];
-    console.log('globalActionUL --> ' + globalActionUL);
-    // You can perform additional actions with globalActionUL here
+    // console.log('setTimeout globalActionUL --> ' + globalActionUL);
     initButton(globalActionUL, button);
-  }, 3000); // Adjust the delay as needed
+  }, 3000); // Add delay for DOM loading
 }
 
 const initButton = (globalActionUL, button) => {
-  var newLi = document.createElement('li');
-  newLi.className = 'slds-global-actions__item slds-grid';
-  // Append the button to the <li>
-  newLi.appendChild(button);
-  globalActionUL.insertAdjacentElement('afterbegin', newLi);
+  // if its classic
+  if (!globalActionUL) {
+    const navLinks = document.querySelector('.navLinks .linkElements');
+    if (navLinks) {
+      navLinks.appendChild(button);
+    }
+  }
+  //if its lightning
+  else {
+    var newLi = document.createElement('li');
+    newLi.className = 'slds-global-actions__item slds-grid';
+    newLi.appendChild(button);
+    globalActionUL.insertAdjacentElement('afterbegin', newLi);
+  }
+
 }
 
 const sendMessageOpenTab = () => {

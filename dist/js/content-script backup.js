@@ -13,10 +13,10 @@ window.addEventListener('load', function () {
   });
   // Find the existing <ul> element in Salesforce
   var targetUl = document.querySelector('.slds-global-actions');
-  console.log('targetUl ' + targetUl);
+  console.log('targetUl 1 ' + targetUl);
   if(!targetUl){
-     targetUl = document.querySelector('.slds-global-header__item');
-     console.log('targetUl ' + targetUl);
+     targetUl = document.querySelector('.linkElements');
+     console.log('targetUl 2' + targetUl);
   }
   if (targetUl) {
     // Check if the button already exists

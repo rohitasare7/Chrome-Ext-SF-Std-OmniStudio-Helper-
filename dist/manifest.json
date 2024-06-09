@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Vlocity OmniStudio Helper",
+  "name": "SF Vlocity OmniStudio Helper",
   "author": "Rohitkumar Asare",
   "version": "1.0.0",
   "description": "Boost Salesforce Vlocity OmniStudio Productivity. Easily search & open FlexCards, OmniScripts, Integration Procedures and DataRaptors.",
