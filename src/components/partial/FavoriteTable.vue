@@ -112,7 +112,7 @@ defineExpose({
         <div class="mt-4 mb-2" v-if="itemList.length > 0">
             <!-- <SVGIconButton @click="filterItemsByType" :icon="Icon_Favorite" :isSquare="false"
             :color="'gray'" class="!p-1.5" title="Add to Favorite" /> -->
-            <PrimaryHeading>Favorite Records for <span class="text-blue-600">{{ props?.currenObject }}</span>
+            <PrimaryHeading>Favorite Records for <span class="text-blue-600 dark:text-blue-400">{{ props?.currenObject }}</span>
             </PrimaryHeading>
             <TextDesc>Please note, there might be newer versions so please refer latest data from above table.
             </TextDesc>

@@ -37,10 +37,11 @@ const sfHostURL = ref('');
 const queriedObject = ref('');
 const orgIdentifier = ref('');
 
-const omniScriptLoaded = ref('OmniScripts Loaded');
-const flexCardsLoaded = ref('FlexCards Loaded');
-const IPloaded = ref('Integration Procedures Loaded');
-const DRloaded = ref('DataRaptors Loaded');
+const pageTitle = 'Vlocity OmniStudio Helper';
+const omniScriptLoaded = ref('OmniScripts Loaded' + ' | ' + pageTitle);
+const flexCardsLoaded = ref('FlexCards Loaded' + ' | ' + pageTitle);
+const IPloaded = ref('Integration Procedures Loaded' + ' | ' + pageTitle);
+const DRloaded = ref('DataRaptors Loaded' + ' | ' + pageTitle);
 
 const performAPIcallout = (url) => {
   return new Promise((resolve, reject) => {
@@ -213,6 +214,7 @@ onMounted(async () => {
   sfHostURL.value = sfHost;
   orgIdentifier.value = extractValue(`https://${sfHostURL.value}`);
   storageRecList.value = await fetchRecords(sfHostURL.value);
+  document.title = pageTitle;
 });
 
 </script>
@@ -244,7 +246,8 @@ onMounted(async () => {
   </div>
   <div v-else>
     <div class="mt-4 mb-2" v-if="recordTitle">
-      <PrimaryHeading>Records loaded for <span class="text-blue-600">{{ queriedObject }}</span> </PrimaryHeading>
+      <PrimaryHeading>Records loaded for <span class="text-blue-600 dark:text-blue-400">{{ queriedObject }}</span>
+      </PrimaryHeading>
       <TextDesc>All records are active records</TextDesc>
     </div>
     <div v-if="recordList.length > 0">
@@ -270,11 +273,11 @@ onMounted(async () => {
         </template>
       </Vue3EasyDataTable>
     </div>
+
+    <FavoriteTable v-if="sfHostURL && recordList.length > 0" :sfHost="sfHostURL" :currenObject="queriedObject"
+      ref="childComponentRef" @fireEvent="handleEvent" />
+
   </div>
-
-
-  <FavoriteTable v-if="sfHostURL" :sfHost="sfHostURL" :currenObject="queriedObject" ref="childComponentRef"
-    @fireEvent="handleEvent" />
 
 </template>
 
