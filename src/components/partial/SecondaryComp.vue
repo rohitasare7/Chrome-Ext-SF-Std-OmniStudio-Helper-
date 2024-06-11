@@ -1,7 +1,7 @@
 <script setup>
 /*global chrome*/
 // import DisplayRecords from '@/components/partial/DisplayRecords';
-import { ref, onMounted } from "vue";
+import { ref, onMounted, shallowRef } from "vue";
 import { apiVersion, sfConn, formatDate } from "@/assets/helper";
 import { fetchRecords } from "@/assets/storageUtil";
 import { saveRecord } from "@/assets/storageUtil";
@@ -17,6 +17,9 @@ import Icon_Execute from "@/assets/icons/Icon_Execute.vue";
 import Icon_Close from "@/assets/icons/Icon_Close.vue";
 import FavoriteTable from './FavoriteTable.vue';
 import Modal from "../elements/Modal.vue";
+//Editor
+import { HighCode } from 'vue-highlight-code';
+import 'vue-highlight-code/dist/style.css';
 // Vue3 Easy DataTable
 import Vue3EasyDataTable from "vue3-easy-data-table";
 import "vue3-easy-data-table/dist/style.css";
@@ -36,6 +39,7 @@ const tableHeaders = ref([
 
 const recordTitle = ref('');
 const dataLoading = ref(false);
+const executeLoadingBtn = ref(false);
 const sfHostURL = ref('');
 const queriedObject = ref('');
 const orgIdentifier = ref('');
@@ -76,7 +80,7 @@ const performPostAPIcallout = (url, obj) => {
       .getSession(sfHostURL.value)
       .then(() => {
         // console.log("getSession inside");
-        let limitsPromise = sfConn.rest(url,obj);
+        let limitsPromise = sfConn.rest(url, obj);
         limitsPromise
           .then((data) => {
             //console.log('limitsPromise data --> ', data);
@@ -234,52 +238,67 @@ const handleEvent = (data) => {
   }
 }
 
-/*
-to do, get IP, DR, OS type & sub type, pass as param
 
-*/
+const beautifyJSON = (jsonValue) => {
+  try {
+    responseJSON.value.modelValue = JSON.stringify(jsonValue, null, 2);
+  } catch (error) {
+    console.log('error --> ' + error);
+    responseJSON.value.modelValue = 'Invalid JSON';
+  }
+};
+
+//code editor
+const responseJSON = ref(null);
+const requestJSON = ref(null);
+
 const apiCalloutBody = ref(null);
 const apiResponse = ref(null);
 const hitAPIcallout = async () => {
+  executeLoadingBtn.value = true;
   console.log('obj --> ' + modalData.value.queriedObject);
   let url;
-  try{
-    if(modalData.value?.queriedObject == 'IntegrationProcedure'){
+  try {
+    if (modalData.value?.queriedObject == 'IntegrationProcedure') {
       url = `/services/apexrest/vlocity_cmt/v1/integrationprocedure/${modalData.value.Type}_${modalData.value.SubType}`;
     }
-    else if(modalData?.value.queriedObject == 'DataRaptor'){
-        // do something
+    else if (modalData?.value.queriedObject == 'DataRaptor') {
+      // do something
     }
-    
+
     // const data = await performAPIcallout(url,obj);
     const response = await performPostAPIcallout(url, {
       method: 'POST', // Use POST method for creating
-      body: JSON.parse(apiCalloutBody.value), // Pass the payload
+      body: JSON.parse(requestJSON.value.modelValue), // Pass the payload
     });
-    console.log('data --> '+JSON.stringify(response));
+    console.log('data --> ' + JSON.stringify(response));
     apiResponse.value = response;
+    beautifyJSON(response);
+    // responseJSON.value.modelValue = JSON.stringify(response, null, 4);
   }
-  catch(err){
+  catch (err) {
     console.log(err);
   }
+  executeLoadingBtn.value = false;
 }
+
 
 //Modal Data
 const showModal = ref(false);
 const modalData = ref({});
 
 const openModal = (queriedObject, Id, Type, SubType) => {
-    showModal.value = true;
-    modalData.value = {
-      Id,
-      Type,
-      SubType,
-      queriedObject
-    }
+  showModal.value = true;
+  modalData.value = {
+    Id,
+    Type,
+    SubType,
+    queriedObject
+  }
 };
 
 const closeModal = () => {
-    showModal.value = false;
+  showModal.value = false;
 };
 //On page load
 onMounted(async () => {
@@ -334,7 +353,7 @@ onMounted(async () => {
         <template #item-Name="{ Name }">
           <p class="text-left ml-2">{{ Name }}</p>
         </template>
-        <template #item-Actions="{ Id, Name, iconColor,vlocity_cmt__Type__c,vlocity_cmt__SubType__c }">
+        <template #item-Actions="{ Id, Name, iconColor, vlocity_cmt__Type__c, vlocity_cmt__SubType__c }">
           <div class="flex justify-center text-center items-center my-1.5">
             <a :href="getSalesforceURL(orgIdentifier, sfHostURL, Id, queriedObject)" target="_blank">
               <PrimaryButton>Open in SF</PrimaryButton>
@@ -342,13 +361,10 @@ onMounted(async () => {
             <SVGIconButton @click="addToFavorite(Id, Name)" :icon="Icon_Favorite" :isSquare="false" :color="iconColor"
               class="!p-1.5 ml-2" title="Add to Favorite" />
 
-              <SVGIconButton v-if="queriedObject == 'DataRaptor' || queriedObject == 'IntegrationProcedure'" @click="openModal(queriedObject, Id, vlocity_cmt__Type__c,vlocity_cmt__SubType__c)" :icon="Icon_Execute" :isSquare="false" color="green"
-              class="!p-1.5 ml-2" title="Execute with Payload" />
+            <SVGIconButton v-if="queriedObject == 'DataRaptor' || queriedObject == 'IntegrationProcedure'"
+              @click="openModal(queriedObject, Id, vlocity_cmt__Type__c, vlocity_cmt__SubType__c)" :icon="Icon_Execute"
+              :isSquare="false" color="green" class="!p-1.5 ml-2" title="Execute with Payload" />
 
-            <!-- <PrimaryButton :isBlue="true" class="ml-2"
-              v-if="queriedObject == 'DataRaptor' || queriedObject == 'IntegrationProcedure'"
-              @click="hitAPIcallout(queriedObject)">Execute {{ queriedObject == 'DataRaptor' ? 'DR' : queriedObject ==
-                'IntegrationProcedure' ? 'IP' : 'NA' }}</PrimaryButton> -->
           </div>
         </template>
       </Vue3EasyDataTable>
@@ -360,19 +376,36 @@ onMounted(async () => {
   </div>
 
   <Modal :show="showModal" @close="closeModal" :cssStyle="'mt-48 !max-w-screen-xl'">
-        <button type="button" @click="closeModal"
-            class="absolute top-3 end-3 text-gray-400 bg-gray-100 hover:bg-gray-200 hover:text-gray-600 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500 transition duration-200 ease-in-out">
-            <Icon_Close class="w-6 h-6" />
-            <span class="sr-only">Close modal</span>
-        </button>
-        <div v-if="modalData" class="p-6">
-            <TextDesc>{{modalData.value.Name}}</TextDesc>
-          <TextInput v-model="apiCalloutBody" placeholder="add json"></TextInput>
-          <SVGIconButton @click="hitAPIcallout" :icon="Icon_Execute" :isSquare="false" color="green"
-              class="!p-1.5 ml-2" title="Execute with Payload" />
+    <button type="button" @click="closeModal"
+      class="absolute top-3 end-3 text-gray-400 bg-gray-100 hover:bg-gray-200 hover:text-gray-600 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500 transition duration-200 ease-in-out">
+      <Icon_Close class="w-6 h-6" />
+      <span class="sr-only">Close modal</span>
+    </button>
+    <div v-if="modalData" class="p-6">
+      <div class="flex justify-between">
+        <TextDesc v-if="queriedObject == 'IntegrationProcedure'"> Integration Procedure : {{ modalData.Type }}_{{
+          modalData.SubType }}</TextDesc>
+        <PrimaryButton v-if="!executeLoadingBtn" :isBlue="true" @click="hitAPIcallout" class="mr-16">
+          Execute
+        </PrimaryButton>
+        <PrimaryButton class="mr-16" v-else>
+          <LoadingCircle :cssStyle="'h-4 w-4 mr-2'">Waiting for Response..</LoadingCircle>
+        </PrimaryButton>
+      </div>
+
+      <div class="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4 mt-4">
+        <div class="w-full lg:w-1/2 mr-3">
+          <HighCode ref="requestJSON" :codeValue="apiCalloutBody" lang="json" textEditor=true codeLines=true
+            height="500px" width="100%" fontSize="12px" copy=true></HighCode>
         </div>
-        {{ apiResponse }}
-    </Modal>
+        <div class="w-full lg:w-1/2">
+          <HighCode ref="responseJSON" :codeValue="apiResponse" lang="json" textEditor=true codeLines=true
+            height="500px" width="100%" fontSize="12px" copy=true></HighCode>
+        </div>
+      </div>
+    </div>
+    <!-- {{ apiResponse }} -->
+  </Modal>
 
 </template>
 
