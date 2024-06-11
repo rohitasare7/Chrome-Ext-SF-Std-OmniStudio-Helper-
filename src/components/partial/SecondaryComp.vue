@@ -13,7 +13,10 @@ import TextDesc from "../elements/TextDesc.vue";
 import PrimaryHeading from "../elements/PrimaryHeading.vue";
 import SVGIconButton from "../elements/SVGIconButton.vue";
 import Icon_Favorite from "@/assets/icons/Icon_Favorite.vue";
+import Icon_Execute from "@/assets/icons/Icon_Execute.vue";
+import Icon_Close from "@/assets/icons/Icon_Close.vue";
 import FavoriteTable from './FavoriteTable.vue';
+import Modal from "../elements/Modal.vue";
 // Vue3 Easy DataTable
 import Vue3EasyDataTable from "vue3-easy-data-table";
 import "vue3-easy-data-table/dist/style.css";
@@ -67,6 +70,30 @@ const performAPIcallout = (url) => {
   });
 };
 
+const performPostAPIcallout = (url, obj) => {
+  return new Promise((resolve, reject) => {
+    sfConn
+      .getSession(sfHostURL.value)
+      .then(() => {
+        // console.log("getSession inside");
+        let limitsPromise = sfConn.rest(url,obj);
+        limitsPromise
+          .then((data) => {
+            //console.log('limitsPromise data --> ', data);
+            resolve(data); // Resolve the promise with the fetched data
+          })
+          .catch((error) => {
+            console.error("Error fetching limits: ", error);
+            reject(error); // Reject the promise if there is an error
+          });
+      })
+      .catch((error) => {
+        console.error("Error getting session: ", error);
+        reject(error); // Reject the promise if there is an error getting the session
+      });
+  });
+};
+
 const ensureVersionHeader = () => {
   const versionHeader = { text: "Version", value: "vlocity_cmt__Version__c" };
   const isVersionHeaderPresent = tableHeaders.value.some(header => header.value === versionHeader.value);
@@ -89,7 +116,7 @@ const getOmniScriptList = async (isIP) => {
   let url =
     "/services/data/v" +
     apiVersion +
-    `/query/?q=SELECT+Id,Name,vlocity_cmt__Version__c,LastModifiedBy.Name,LastModifiedDate+FROM+vlocity_cmt__OmniScript__c+WHERE+vlocity_cmt__IsActive__c=TRUE+AND+vlocity_cmt__OmniProcessType__c='${processType}'+ORDER+BY+LastModifiedDate+DESC`;
+    `/query/?q=SELECT+Id,Name,vlocity_cmt__Version__c,vlocity_cmt__Type__c,vlocity_cmt__SubType__c,LastModifiedBy.Name,LastModifiedDate+FROM+vlocity_cmt__OmniScript__c+WHERE+vlocity_cmt__IsActive__c=TRUE+AND+vlocity_cmt__OmniProcessType__c='${processType}'+ORDER+BY+LastModifiedDate+DESC`;
   // console.log('url --> '+url);
   try {
     const data = await performAPIcallout(url);
@@ -207,6 +234,53 @@ const handleEvent = (data) => {
   }
 }
 
+/*
+to do, get IP, DR, OS type & sub type, pass as param
+
+*/
+const apiCalloutBody = ref(null);
+const apiResponse = ref(null);
+const hitAPIcallout = async () => {
+  console.log('obj --> ' + modalData.value.queriedObject);
+  let url;
+  try{
+    if(modalData.value?.queriedObject == 'IntegrationProcedure'){
+      url = `/services/apexrest/vlocity_cmt/v1/integrationprocedure/${modalData.value.Type}_${modalData.value.SubType}`;
+    }
+    else if(modalData?.value.queriedObject == 'DataRaptor'){
+        // do something
+    }
+    
+    // const data = await performAPIcallout(url,obj);
+    const response = await performPostAPIcallout(url, {
+      method: 'POST', // Use POST method for creating
+      body: JSON.parse(apiCalloutBody.value), // Pass the payload
+    });
+    console.log('data --> '+JSON.stringify(response));
+    apiResponse.value = response;
+  }
+  catch(err){
+    console.log(err);
+  }
+}
+
+//Modal Data
+const showModal = ref(false);
+const modalData = ref({});
+
+const openModal = (queriedObject, Id, Type, SubType) => {
+    showModal.value = true;
+    modalData.value = {
+      Id,
+      Type,
+      SubType,
+      queriedObject
+    }
+};
+
+const closeModal = () => {
+    showModal.value = false;
+};
 //On page load
 onMounted(async () => {
   let args = new URLSearchParams(location.search.slice(1));
@@ -222,24 +296,22 @@ onMounted(async () => {
 <template>
   <!-- Init Main Page -->
 
-  <TextDesc v-if="sfHostURL" class="my-2">Current Org : {{ sfHostURL }}</TextDesc>
+  <TextDesc v-if="sfHostURL" class="mt-2 mb-4">Current Org : {{ sfHostURL }}</TextDesc>
 
-  <button @click="getOmniScriptList(false)"
-    class="bg-blue-700 hover:bg-blue-800 text-white py-2 px-4 rounded-md mr-2 my-2">
+  <PrimaryButton :isBlue="true" @click="getOmniScriptList(false)" class="mr-2">
     Load OmniScript
-  </button>
-  <button @click="getFlexCardList" class="bg-blue-700 hover:bg-blue-800 text-white py-2 px-4 rounded-md mr-2 my-2">
+  </PrimaryButton>
+  <PrimaryButton :isBlue="true" @click="getFlexCardList" class="mr-2">
     Load FlexCard
-  </button>
-  <button @click="getOmniScriptList(true)"
-    class="bg-blue-700 hover:bg-blue-800 text-white py-2 px-4 rounded-md mr-2 my-2">
+  </PrimaryButton>
+  <PrimaryButton :isBlue="true" @click="getOmniScriptList(true)" class="mr-2">
     Load Integration Procedure
-  </button>
-  <button @click="getDataRaptorList" class="bg-blue-700 hover:bg-blue-800 text-white py-2 px-4 rounded-md mr-2 my-2">
+  </PrimaryButton>
+  <PrimaryButton :isBlue="true" @click="getDataRaptorList">
     Load DataRaptor
-  </button>
+  </PrimaryButton>
 
-  <div v-if="dataLoading">
+  <div v-if="dataLoading" class="mt-4">
     <PrimaryButton>
       <LoadingCircle :cssStyle="'h-4 w-4 mr-2'">Data is loading...</LoadingCircle>
     </PrimaryButton>
@@ -262,13 +334,21 @@ onMounted(async () => {
         <template #item-Name="{ Name }">
           <p class="text-left ml-2">{{ Name }}</p>
         </template>
-        <template #item-Actions="{ Id, Name, iconColor }">
+        <template #item-Actions="{ Id, Name, iconColor,vlocity_cmt__Type__c,vlocity_cmt__SubType__c }">
           <div class="flex justify-center text-center items-center my-1.5">
             <a :href="getSalesforceURL(orgIdentifier, sfHostURL, Id, queriedObject)" target="_blank">
               <PrimaryButton>Open in SF</PrimaryButton>
             </a>
             <SVGIconButton @click="addToFavorite(Id, Name)" :icon="Icon_Favorite" :isSquare="false" :color="iconColor"
-              class="!p-1.5 ml-2 " title="Add to Favorite" />
+              class="!p-1.5 ml-2" title="Add to Favorite" />
+
+              <SVGIconButton v-if="queriedObject == 'DataRaptor' || queriedObject == 'IntegrationProcedure'" @click="openModal(queriedObject, Id, vlocity_cmt__Type__c,vlocity_cmt__SubType__c)" :icon="Icon_Execute" :isSquare="false" color="green"
+              class="!p-1.5 ml-2" title="Execute with Payload" />
+
+            <!-- <PrimaryButton :isBlue="true" class="ml-2"
+              v-if="queriedObject == 'DataRaptor' || queriedObject == 'IntegrationProcedure'"
+              @click="hitAPIcallout(queriedObject)">Execute {{ queriedObject == 'DataRaptor' ? 'DR' : queriedObject ==
+                'IntegrationProcedure' ? 'IP' : 'NA' }}</PrimaryButton> -->
           </div>
         </template>
       </Vue3EasyDataTable>
@@ -278,6 +358,21 @@ onMounted(async () => {
       ref="childComponentRef" @fireEvent="handleEvent" />
 
   </div>
+
+  <Modal :show="showModal" @close="closeModal" :cssStyle="'mt-48 !max-w-screen-xl'">
+        <button type="button" @click="closeModal"
+            class="absolute top-3 end-3 text-gray-400 bg-gray-100 hover:bg-gray-200 hover:text-gray-600 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500 transition duration-200 ease-in-out">
+            <Icon_Close class="w-6 h-6" />
+            <span class="sr-only">Close modal</span>
+        </button>
+        <div v-if="modalData" class="p-6">
+            <TextDesc>{{modalData.value.Name}}</TextDesc>
+          <TextInput v-model="apiCalloutBody" placeholder="add json"></TextInput>
+          <SVGIconButton @click="hitAPIcallout" :icon="Icon_Execute" :isSquare="false" color="green"
+              class="!p-1.5 ml-2" title="Execute with Payload" />
+        </div>
+        {{ apiResponse }}
+    </Modal>
 
 </template>
 

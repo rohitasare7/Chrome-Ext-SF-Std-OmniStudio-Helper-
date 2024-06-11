@@ -28,7 +28,7 @@ window.addEventListener('load', function () {
   // Set inline styles for the button
   button.style.position = 'relative';
   button.style.color = '#fff';
-  button.style.borderRadius = '7px';
+  button.style.borderRadius = '1rem';
   button.style.backgroundImage = 'linear-gradient(90deg, #0065ff, #6942ef, #6554c0, #008cff, #0065ff, #6942ef)';
   button.style.backgroundSize = '400%';
   button.style.backgroundPosition = '0% 0%';
