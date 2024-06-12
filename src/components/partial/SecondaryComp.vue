@@ -200,7 +200,7 @@ const addToFavorite = (Id, Name) => {
   }
   let result = saveRecord(obj, sfHostURL.value);
   if (result) {
-    console.log('inside result');
+    // console.log('inside result');
     childComponentRef.value.getLatestFavItemList();
     setIconColor(Id, 'blue');
   }
@@ -210,7 +210,7 @@ const setIconColor = (Id, Color) => {
   const recordIndex = recordList.value.findIndex(item => item.Id === Id);
   if (recordIndex !== -1) {
     recordList.value[recordIndex].iconColor = Color;
-    console.log('color changed --> ' + recordList.value[recordIndex].iconColor);
+    // console.log('color changed --> ' + recordList.value[recordIndex].iconColor);
   }
 }
 
@@ -220,7 +220,7 @@ const getIconButtonColor = (id) => {
   const itemExists = storageRecList.value.some(record =>
     record.items.some(item => item.id === id)
   );
-  console.log('itemExists --> ' + itemExists);
+  // console.log('itemExists --> ' + itemExists);
   // Return blue color if the item exists, otherwise return gray
   if (itemExists) {
     return 'blue';
@@ -231,7 +231,7 @@ const getIconButtonColor = (id) => {
 };
 
 const handleEvent = (data) => {
-  console.log('event fired --> ' + JSON.stringify(data));
+  // console.log('event fired --> ' + JSON.stringify(data));
   if (data?.action == 'deleteItem') {
     setIconColor(data?.recId, 'gray');
     //storageRecList.value = storageRecList.value.filter(item => item.id !== data?.recId);
@@ -259,7 +259,7 @@ const hitAPIcallout = async () => {
   executeLoadingBtn.value = true;
   execuiteErr.value = null;
   // responseJSON.value.modelValue = '';
-  console.log('obj --> ' + modalData.value.queriedObject);
+  // console.log('obj --> ' + modalData.value.queriedObject);
   let url;
   let body;
   try {
@@ -283,7 +283,7 @@ const hitAPIcallout = async () => {
       body: JSON.parse(body), // Pass the payload
     });
 
-    console.log('data --> ' + JSON.stringify(response));
+    // console.log('data --> ' + JSON.stringify(response));
     if (modalData?.value.queriedObject == 'DataRaptor') {
       if (response?.hasErrors) {
         apiResponse.value = response?.errors;

@@ -5,14 +5,14 @@ window.addEventListener('load', function () {
   // Send a message to the background script
   chrome.runtime.sendMessage({ message: "getSfHost", url: location.href }, sfHost => {
     if (sfHost) {
-      console.log('sf host --> ' + sfHost);
+      // console.log('sf host --> ' + sfHost);
       //alert('sf host active');
       sfHostStr = sfHost;
     }
   });
 
   // Fix Integration Procedure Execute Button
-  if (window.location.href.includes('vlocity_cmt__integrationproceduredesigner?id')) {
+  if (window.location.href.includes('integrationproceduredesigner')) {
     var element = document.querySelector('button.slds-button.slds-button--brand.slds-col_bump-left');
     if (element) {
       element.style.position = 'fixed';
@@ -127,7 +127,7 @@ const sendMessageOpenTab = () => {
   }
   chrome.runtime.sendMessage({ message: "openAppTab", url: location.href, options: msgOptions }, item => {
     if (item) {
-      console.log('success');
+      // console.log('success');
     }
   });
 }

@@ -60,8 +60,8 @@ const filterItemsByType = async (setDelay = false) => {
             itemList.value.push(...record.items);
         }
     }
-    console.log('inside filterItemsByType and obj --> ' + props?.currenObject);
-    console.log('itemList --> ' + JSON.stringify(itemList.value));
+    // console.log('inside filterItemsByType and obj --> ' + props?.currenObject);
+    // console.log('itemList --> ' + JSON.stringify(itemList.value));
     return itemList;
 };
 
@@ -70,19 +70,19 @@ const removeItemById = async (id) => {
     if (result) {
         itemList.value = itemList.value.filter(item => item.id !== id);
         emit('fireEvent', { action: 'deleteItem', recId: id });
-        console.log('Item with ID', id, 'removed from itemList');
+        // console.log('Item with ID', id, 'removed from itemList');
     }
 
 };
 
 const getLatestFavItemList = async () => {
     await filterItemsByType(true);
-    console.log('inside getLatestFavItemList');
+    // console.log('inside getLatestFavItemList');
 }
 
 watch(() => props.currenObject, async (newValue) => {
     if (newValue) {
-        console.log('inside watch');
+        // console.log('inside watch');
         await filterItemsByType(false);
     }
 }, { immediate: true }); // Call immediately when the component is created
