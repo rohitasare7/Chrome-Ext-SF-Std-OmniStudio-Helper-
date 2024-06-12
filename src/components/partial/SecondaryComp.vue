@@ -327,11 +327,11 @@ const closeModal = () => {
   showModal.value = false;
   execuiteErr.value = null;
   apiResponse.value = ' ';
-  if(responseJSON.value?.modelValue){
+  if (responseJSON.value?.modelValue) {
     //console.log('responseJSON.value.modelValue --> '+responseJSON.value?.modelValue);
     responseJSON.value.modelValue = ' ';
   }
-  else{
+  else {
     //console.log('na --> '+responseJSON.value);
     responseJSON.value.modelValue = ' ';
   }
@@ -408,6 +408,11 @@ onMounted(async () => {
 
     <FavoriteTable v-if="sfHostURL && recordList.length > 0" :sfHost="sfHostURL" :currenObject="queriedObject"
       ref="childComponentRef" @fireEvent="handleEvent" />
+
+    <div v-if="sfHostURL && recordList.length > 0" class="flex items-end justify-end mt-10">
+      <TextDesc>Vlocity OmniStudio Helper by <a href="https://www.youtube.com/@ThatSalesforceGuy" target="_blank"
+          class="text-blue-700 font-semibold dark:text-blue-400">That Salesforce Guy</a></TextDesc>
+    </div>
 
   </div>
 
