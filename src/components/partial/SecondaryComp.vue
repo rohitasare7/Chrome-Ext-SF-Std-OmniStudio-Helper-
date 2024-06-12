@@ -251,33 +251,58 @@ const beautifyJSON = (jsonValue) => {
 //code editor
 const responseJSON = ref(null);
 const requestJSON = ref(null);
+const execuiteErr = ref('');
 
 const apiCalloutBody = ref(null);
 const apiResponse = ref(null);
 const hitAPIcallout = async () => {
   executeLoadingBtn.value = true;
+  execuiteErr.value = null;
+  // responseJSON.value.modelValue = '';
   console.log('obj --> ' + modalData.value.queriedObject);
   let url;
+  let body;
   try {
     if (modalData.value?.queriedObject == 'IntegrationProcedure') {
       url = `/services/apexrest/vlocity_cmt/v1/integrationprocedure/${modalData.value.Type}_${modalData.value.SubType}`;
+      body = requestJSON.value.modelValue;
     }
     else if (modalData?.value.queriedObject == 'DataRaptor') {
-      // do something
+      url = `/services/apexrest/vlocity_cmt/v2/DataRaptor/`;
+      body = {
+        bundleName: modalData.value?.Name,
+        objectList: requestJSON.value.modelValue,
+        bulkUpload: modalData.value?.bulkUpload
+      };
+      body = JSON.stringify(body);
     }
 
-    // const data = await performAPIcallout(url,obj);
+    //console.log('body --> ' + body);
     const response = await performPostAPIcallout(url, {
       method: 'POST', // Use POST method for creating
-      body: JSON.parse(requestJSON.value.modelValue), // Pass the payload
+      body: JSON.parse(body), // Pass the payload
     });
+
     console.log('data --> ' + JSON.stringify(response));
-    apiResponse.value = response;
-    beautifyJSON(response);
+    if (modalData?.value.queriedObject == 'DataRaptor') {
+      if (response?.hasErrors) {
+        apiResponse.value = response?.errors;
+      }
+      else {
+        apiResponse.value = response?.returnResultsData;
+      }
+
+    }
+    else {
+      apiResponse.value = response;
+    }
+
+    beautifyJSON(apiResponse.value);
     // responseJSON.value.modelValue = JSON.stringify(response, null, 4);
   }
   catch (err) {
     console.log(err);
+    execuiteErr.value = err;
   }
   executeLoadingBtn.value = false;
 }
@@ -287,18 +312,29 @@ const hitAPIcallout = async () => {
 const showModal = ref(false);
 const modalData = ref({});
 
-const openModal = (queriedObject, Id, Type, SubType) => {
+const openModal = (queriedObject, Id, Type, SubType, Name) => {
   showModal.value = true;
   modalData.value = {
     Id,
     Type,
     SubType,
-    queriedObject
+    queriedObject,
+    Name
   }
 };
 
 const closeModal = () => {
   showModal.value = false;
+  execuiteErr.value = null;
+  apiResponse.value = ' ';
+  if(responseJSON.value?.modelValue){
+    //console.log('responseJSON.value.modelValue --> '+responseJSON.value?.modelValue);
+    responseJSON.value.modelValue = ' ';
+  }
+  else{
+    //console.log('na --> '+responseJSON.value);
+    responseJSON.value.modelValue = ' ';
+  }
 };
 //On page load
 onMounted(async () => {
@@ -362,8 +398,8 @@ onMounted(async () => {
               class="!p-1.5 ml-2" title="Add to Favorite" />
 
             <SVGIconButton v-if="queriedObject == 'DataRaptor' || queriedObject == 'IntegrationProcedure'"
-              @click="openModal(queriedObject, Id, vlocity_cmt__Type__c, vlocity_cmt__SubType__c)" :icon="Icon_Execute"
-              :isSquare="false" color="green" class="!p-1.5 ml-2" title="Execute with Payload" />
+              @click="openModal(queriedObject, Id, vlocity_cmt__Type__c, vlocity_cmt__SubType__c, Name)"
+              :icon="Icon_Execute" :isSquare="false" color="green" class="!p-1.5 ml-2" title="Execute with Payload" />
 
           </div>
         </template>
@@ -375,7 +411,7 @@ onMounted(async () => {
 
   </div>
 
-  <Modal :show="showModal" @close="closeModal" :cssStyle="'mt-48 !max-w-screen-xl'">
+  <Modal :show="showModal" @close="closeModal" :cssStyle="'mt-36 !max-w-screen-xl'">
     <button type="button" @click="closeModal"
       class="absolute top-3 end-3 text-gray-400 bg-gray-100 hover:bg-gray-200 hover:text-gray-600 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500 transition duration-200 ease-in-out">
       <Icon_Close class="w-6 h-6" />
@@ -383,8 +419,8 @@ onMounted(async () => {
     </button>
     <div v-if="modalData" class="p-6">
       <div class="flex justify-between">
-        <TextDesc v-if="queriedObject == 'IntegrationProcedure'"> Integration Procedure : {{ modalData.Type }}_{{
-          modalData.SubType }}</TextDesc>
+        <TextDesc> {{ queriedObject == 'IntegrationProcedure' ? 'Integration Procedure' : 'Data Raptor' }} : <span
+            class="font-semibold">{{ modalData.Name }}</span></TextDesc>
         <PrimaryButton v-if="!executeLoadingBtn" :isBlue="true" @click="hitAPIcallout" class="mr-16">
           Execute
         </PrimaryButton>
@@ -392,15 +428,17 @@ onMounted(async () => {
           <LoadingCircle :cssStyle="'h-4 w-4 mr-2'">Waiting for Response..</LoadingCircle>
         </PrimaryButton>
       </div>
-
-      <div class="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4 mt-4">
+      <div v-if="execuiteErr">
+        <TextDesc class="text-red-600 font-semibold my-4">{{ execuiteErr }}</TextDesc>
+      </div>
+      <div class="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4 mt-2">
         <div class="w-full lg:w-1/2 mr-3">
-          <HighCode ref="requestJSON" :codeValue="apiCalloutBody" lang="json" textEditor=true codeLines=true
-            height="500px" width="100%" fontSize="12px" copy=true></HighCode>
+          <HighCode ref="requestJSON" :codeValue="apiCalloutBody" lang="json" textEditor=true height="500px"
+            width="100%" fontSize="12px" copy=true></HighCode>
         </div>
         <div class="w-full lg:w-1/2">
-          <HighCode ref="responseJSON" :codeValue="apiResponse" lang="json" textEditor=true codeLines=true
-            height="500px" width="100%" fontSize="12px" copy=true></HighCode>
+          <HighCode ref="responseJSON" :codeValue="apiResponse" lang="json" textEditor=true height="500px" width="100%"
+            fontSize="12px" copy=true></HighCode>
         </div>
       </div>
     </div>
