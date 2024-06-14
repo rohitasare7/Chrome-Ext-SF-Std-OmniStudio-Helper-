@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Vlocity OmniStudio Helper",
+  "name": "Vlocity Deployment Helper",
   "author": "Rohitkumar Asare",
   "version": "1.0.0",
   "description": "Boost Salesforce Vlocity OmniStudio Productivity by opening,executing IP, DR, Flexcards and OmniScripts.",
