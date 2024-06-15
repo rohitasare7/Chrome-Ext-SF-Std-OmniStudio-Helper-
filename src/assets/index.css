@@ -42,6 +42,13 @@ html.dark .previous-page__click-button .arrow, html.dark .next-page__click-butto
     @apply border-sky-300
 }
 
+html.dark .previous-page__click-button.first-page .arrow {
+    @apply border-gray-400
+}
+
+.cb_copy {
+    font-family: inherit !important;
+}
 
 .tableCSS {
     --easy-table-border: 1px solid #DDD;
@@ -54,11 +61,11 @@ html.dark .previous-page__click-button .arrow, html.dark .next-page__click-butto
 
 .vue3-easy-data-table__main {
     border: none !important;
-    border-top-left-radius: 0.5rem !important;
-    border-top-right-radius: 0.5rem !important;
+    border-top-left-radius: 0.75rem !important;
+    border-top-right-radius: 0.75rem !important;
 }
 
 .vue3-easy-data-table__footer {
-    border-bottom-left-radius: .5rem;
-    border-bottom-right-radius: .5rem;
+    border-bottom-left-radius: .75rem;
+    border-bottom-right-radius: .75rem;
 }

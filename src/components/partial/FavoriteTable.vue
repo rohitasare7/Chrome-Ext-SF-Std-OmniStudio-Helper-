@@ -109,20 +109,20 @@ defineExpose({
         </PrimaryButton>
     </div>
     <div v-else>
-        <div class="mt-4 mb-2" v-if="itemList.length > 0">
-            <!-- <SVGIconButton @click="filterItemsByType" :icon="Icon_Favorite" :isSquare="false"
-            :color="'gray'" class="!p-1.5" title="Add to Favorite" /> -->
-            <PrimaryHeading>Favorite Records for <span class="text-blue-600 dark:text-blue-400">{{ props?.currenObject }}</span>
-            </PrimaryHeading>
-            <TextDesc>Please note, there might be newer versions so please refer latest data from above table.
-            </TextDesc>
-        </div>
-        <div v-if="itemList.length > 0">
-            <TextInput v-model="searchValue" type="text" class="!px-2 !py-1 my-2" placeholder="Filter records.." />
+        <div v-if="itemList.length > 0" class="mt-4 rounded-xl bg-white dark:bg-gray-800 dark:shadow p-3 sm:p-5">
+            <div class="mb-2">
+                <PrimaryHeading>Favorite Records for <span class="text-blue-600 dark:text-blue-400">{{
+                        props?.currenObject }}</span>
+                </PrimaryHeading>
+                <TextDesc>Please note, there might be newer versions so please refer latest data from above table.
+                </TextDesc>
+            </div>
+            <TextInput v-model="searchValue" type="text" class="!px-3 !py-1.5 my-2 text-sm"
+                placeholder="Filter records.." />
             <Vue3EasyDataTable :headers="tableHeaders" :items="itemList" :search-field="searchField" :rows-per-page="10"
                 header-text-direction="center" body-text-direction="center" :search-value="searchValue"
                 :sort-by="sortBy" :sort-type="sortType" :no-hover="true" :theme-color="'#312e3d'"
-                table-class-name="tableCSS mt-4 mb-8 rounded-lg border dark:border-gray-600 shadow-md">
+                table-class-name="tableCSS mt-4 mb-8 rounded-xl border dark:border-gray-600">
                 <template #loading>
                     <TextDesc class="font-semibold my-4">Data loading, please wait...</TextDesc>
                 </template>

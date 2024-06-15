@@ -9,7 +9,7 @@ export let sfConn = {
     const currentUrlIncludesToken = window.location.href.includes(ACCESS_TOKEN);
     const oldToken = localStorage.getItem(sfHost + "_" + ACCESS_TOKEN);
     this.instanceHostname = sfHost;
-    if (currentUrlIncludesToken){ //meaning OAuth flow just completed
+    if (currentUrlIncludesToken) { //meaning OAuth flow just completed
       if (window.location.href.includes(ACCESS_TOKEN)) {
         const url = new URL(window.location.href);
         const hashParams = new URLSearchParams(url.hash.substring(1)); //hash (#) used in user-agent flow
@@ -22,7 +22,7 @@ export let sfConn = {
       this.sessionId = oldToken;
     } else {
       let message = await new Promise(resolve =>
-        chrome.runtime.sendMessage({message: "getSession", sfHost}, resolve));
+        chrome.runtime.sendMessage({ message: "getSession", sfHost }, resolve));
       if (message) {
         this.instanceHostname = getMyDomain(message.hostname);
         this.sessionId = message.key;
@@ -32,13 +32,45 @@ export let sfConn = {
     if (localStorage.getItem(sfHost + "_" + IS_SANDBOX) == null) {
       sfConn.rest("/services/data/v" + apiVersion + "/query/?q=SELECT+IsSandbox,+InstanceName+FROM+Organization").then(res => {
         localStorage.setItem(sfHost + "_" + IS_SANDBOX, res.records[0].IsSandbox);
-        localStorage.setItem(sfHost + "_orgInstance", res.records[0].InstanceName);
+        // localStorage.setItem(sfHost + "_orgInstance", res.records[0].InstanceName);
       });
+    }
+    //Set namespace
+    if (localStorage.getItem(sfHost + "_" + 'ns') == null) {
+      sfConn.rest("/services/data/v" + apiVersion + "/tooling/query/?q=SELECT+SubscriberPackage.NamespacePrefix+FROM+InstalledSubscriberPackage")
+        .then(res => {
+          //console.log('namespace --> ' + JSON.stringify(res));
+          if (res?.size > 0 && res.records) {
+            const namespaces = res.records
+              .filter(record => record.SubscriberPackage.NamespacePrefix)
+              .map(record => record.SubscriberPackage.NamespacePrefix);
+  
+            let namespaceToSave = null;
+  
+            if (namespaces.includes('vlocity_cmt')) {
+              namespaceToSave = 'vlocity_cmt';
+            } else if (namespaces.includes('omnistudio')) {
+              namespaceToSave = 'omnistudio';
+            }
+  
+            if (namespaceToSave) {
+              localStorage.setItem(sfHost + "_" + 'ns', namespaceToSave);
+              console.log('Namespace saved:', namespaceToSave);
+            } else {
+              console.log('Target namespaces not found.');
+            }
+          } else {
+            console.log('No records found.');
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching namespaces:', error);
+        });
     }
     // setFavicon(sfHost);
   },
 
-  async rest(url, {logErrors = true, method = "GET", api = "normal", body = undefined, bodyType = "json", responseType = "json", headers = {}, progressHandler = null} = {}) {
+  async rest(url, { logErrors = true, method = "GET", api = "normal", body = undefined, bodyType = "json", responseType = "json", headers = {}, progressHandler = null } = {}) {
     if (!this.instanceHostname) {
       throw new Error("Instance Hostname not found");
     }
@@ -102,7 +134,7 @@ export let sfConn = {
     } else if (xhr.status == 401) {
       let error = xhr.response.length > 0 ? xhr.response[0].message : "New access token needed";
       //set sessionError only if user has already generated a token, which will prevent to display the error when the session is expired and api access control not configured
-      if (localStorage.getItem(this.instanceHostname + "_access_token")){
+      if (localStorage.getItem(this.instanceHostname + "_access_token")) {
         sessionError = error;
         showInvalidTokenBanner();
       }
@@ -161,7 +193,7 @@ export let sfConn = {
     return wsdl;
   },
 
-  async soap(wsdl, method, args, {headers} = {}) {
+  async soap(wsdl, method, args, { headers } = {}) {
     if (!this.instanceHostname || !this.sessionId) {
       throw new Error("Session not found");
     }
@@ -187,8 +219,8 @@ export let sfConn = {
       name: "soapenv:Envelope",
       attributes: ` ${requestAttributes.join(" ")}${wsdl.targetNamespaces}`,
       value: {
-        "soapenv:Header": Object.assign({}, {[sessionHeaderKey]: {[sessionIdKey]: this.sessionId}}, headers),
-        "soapenv:Body": {[requestMethod]: args}
+        "soapenv:Header": Object.assign({}, { [sessionHeaderKey]: { [sessionIdKey]: this.sessionId } }, headers),
+        "soapenv:Body": { [requestMethod]: args }
       }
     });
 
@@ -228,7 +260,7 @@ export let sfConn = {
 };
 
 class XML {
-  static stringify({name, attributes, value}) {
+  static stringify({ name, attributes, value }) {
     function buildRequest(el, params) {
       if (params == null) {
         el.setAttribute("xsi:nil", "true");
@@ -318,16 +350,16 @@ function getMyDomain(host) {
   return host;
 }
 
-function showInvalidTokenBanner(){
+function showInvalidTokenBanner() {
   const containerToShow = document.getElementById("invalidTokenBanner");
   if (containerToShow) { containerToShow.classList.remove("hide"); }
   const containerToMask = document.getElementById("mainTabs");
   if (containerToMask) { containerToMask.classList.add("mask"); }
 }
 
-function setFavicon(sfHost){
+function setFavicon(sfHost) {
   let fav = localStorage.getItem(sfHost + "_customFavicon");
-  if (fav){
+  if (fav) {
     let link = document.querySelector("link[rel~='icon']");
     if (!link) {
       link = document.createElement("link");
@@ -335,7 +367,7 @@ function setFavicon(sfHost){
       document.head.appendChild(link);
     }
     //check if custom favicon from the extension or web
-    if (fav.indexOf("http") == -1){
+    if (fav.indexOf("http") == -1) {
       fav = "./images/favicons/" + fav + ".png";
     }
     link.href = fav;

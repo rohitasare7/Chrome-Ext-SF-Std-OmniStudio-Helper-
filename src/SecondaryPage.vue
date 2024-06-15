@@ -1,5 +1,5 @@
 <template>
-  <div class="dark:bg-gray-900 py-2">
+  <div class="dark:bg-gray-900 py-2 bg-gray-100">
     <div class="p-5 w-11/12 antialiased mx-auto">
       <ToggleLightDarkMode />
       <SecondaryComp />

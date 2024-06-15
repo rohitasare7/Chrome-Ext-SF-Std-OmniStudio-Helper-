@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Salesforce OmniStudio Helper",
   "author": "Rohitkumar Asare",
-  "version": "1.0.0",
-  "description": "Boost Salesforce OmniStudio (standard) Productivity by opening,executing IP, DR, Flexcards and OmniScripts.",
+  "version": "1.2.0",
+  "description": "Boost Salesforce OmniStudio Productivity by 1 click opening,executing IP, DR, Flexcards and OmniScripts.",
   "permissions": [
     "storage",
     "activeTab",
