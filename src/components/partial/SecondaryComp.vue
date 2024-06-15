@@ -211,6 +211,7 @@ const getDataRaptorList = async () => {
     if (orgNameSpace.value == 'vlocity_cmt') {
       versionHeader = 'vlocity_cmt__Version__c';
     }
+    // remove version from header
     tableHeaders.value = tableHeaders.value.filter(
       (header) => header.value !== versionHeader
     );
@@ -304,6 +305,7 @@ const hitAPIcallout = async () => {
   let url;
   let body;
   let orgNameSpace = getOrgNamspace();
+  console.log('modalData.value -->'+JSON.stringify(modalData.value));
   try {
     if (modalData.value?.queriedObject == "IntegrationProcedure") {
       url = `/services/apexrest/${orgNameSpace}/v1/integrationprocedure/${modalData.value.Type}_${modalData.value.SubType}`;
@@ -445,8 +447,8 @@ onMounted(async () => {
             Id,
             Name,
             iconColor,
-            Type,
-            SubType,
+            Type,vlocity_cmt__Type__c,
+            SubType,vlocity_cmt__SubType__c
           }">
             <div class="flex justify-center text-center items-center my-1.5">
               <a :href="getSalesforceURL(orgIdentifier, sfHostURL, Id, queriedObject)
@@ -463,8 +465,8 @@ onMounted(async () => {
                 openModal(
                   queriedObject,
                   Id,
-                  Type,
-                  SubType,
+                  Type ?? vlocity_cmt__Type__c,
+                  SubType ?? vlocity_cmt__SubType__c,
                   Name
                 )
                 " :icon="Icon_Execute" :isSquare="false" color="green" class="!p-1.5 ml-2"

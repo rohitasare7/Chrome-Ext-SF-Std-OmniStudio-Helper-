@@ -44,7 +44,7 @@ const directLinkList = [
         id: 3,
         obj: 'FlexCard',
         omnistudio: `/lightning/r/OmniUiCard/`,
-        vlocity_cmt: `/r/vlocity_cmt__VlocityCard__c/`,
+        vlocity_cmt: `/lightning/r/vlocity_cmt__VlocityCard__c/`,
     },
     {
         id: 4,
