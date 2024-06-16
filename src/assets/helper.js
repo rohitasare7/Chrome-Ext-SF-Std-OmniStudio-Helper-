@@ -35,7 +35,7 @@ export let sfConn = {
         // localStorage.setItem(sfHost + "_orgInstance", res.records[0].InstanceName);
       });
     }
-    //Set namespace
+    //Set namespace --> try Select Name, NamespacePrefix from ApexClass where Name = 'DRDataPackService'
     if (localStorage.getItem(sfHost + "_" + 'ns') == null) {
       sfConn.rest("/services/data/v" + apiVersion + "/tooling/query/?q=SELECT+SubscriberPackage.NamespacePrefix+FROM+InstalledSubscriberPackage")
         .then(res => {
