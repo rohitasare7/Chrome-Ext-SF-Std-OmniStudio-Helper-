@@ -5,7 +5,11 @@ import { ref, onMounted, shallowRef } from "vue";
 import { apiVersion, sfConn, formatDate } from "@/assets/helper";
 import { fetchRecords } from "@/assets/storageUtil";
 import { saveRecord } from "@/assets/storageUtil";
-import { extractValue, getSalesforceURL, getComponentQuery } from "@/assets/globalUtil";
+import {
+  extractValue,
+  getSalesforceURL,
+  getComponentQuery,
+} from "@/assets/globalUtil";
 import PrimaryButton from "../elements/PrimaryButton.vue";
 import TextInput from "../elements/TextInput.vue";
 import LoadingCircle from "../elements/LoadingCircle.vue";
@@ -43,7 +47,7 @@ const omniScriptLoaded = ref("OmniScripts Loaded" + " | " + pageTitle);
 const flexCardsLoaded = ref("FlexCards Loaded" + " | " + pageTitle);
 const IPloaded = ref("Integration Procedures Loaded" + " | " + pageTitle);
 const DRloaded = ref("DataRaptors Loaded" + " | " + pageTitle);
-const orgNameSpace = ref('');
+const orgNameSpace = ref("");
 
 const initData = (url) => {
   return new Promise((resolve, reject) => {
@@ -51,18 +55,20 @@ const initData = (url) => {
       .getSession(sfHostURL.value)
       .then(() => {
         // set org namespace
-        if (!orgNameSpace.value && localStorage.getItem(sfHostURL.value + "_" + 'ns')) {
+        if (
+          !orgNameSpace.value &&
+          localStorage.getItem(sfHostURL.value + "_" + "ns")
+        ) {
           orgNameSpace.value = getOrgNamspace();
           setMainTableHeaders(orgNameSpace.value);
         }
-
       })
       .catch((error) => {
         console.error("Error getting session: ", error);
         reject(error); // Reject the promise if there is an error getting the session
       });
   });
-}
+};
 
 const performAPIcallout = (url) => {
   return new Promise((resolve, reject) => {
@@ -86,7 +92,6 @@ const performAPIcallout = (url) => {
         reject(error); // Reject the promise if there is an error getting the session
       });
   });
-
 };
 
 const performPostAPIcallout = (url, obj) => {
@@ -121,13 +126,13 @@ const setMainTableHeaders = (nameSpace) => {
     { text: "LastModified By", value: "LastModifiedBy.Name" },
     { text: "LastModified Date", value: "LastModifiedDateNew", sortable: true },
     { text: "Actions", value: "Actions", width: 300 },
-  ]
-}
+  ];
+};
 
 const ensureVersionHeader = () => {
-  let versionStr = 'VersionNumber';
-  if (orgNameSpace.value == 'vlocity_cmt') {
-    versionStr = 'vlocity_cmt__Version__c';
+  let versionStr = "VersionNumber";
+  if (orgNameSpace.value == "vlocity_cmt") {
+    versionStr = "vlocity_cmt__Version__c";
   }
 
   const versionHeader = { text: "Version", value: versionStr };
@@ -150,7 +155,10 @@ const getOmniScriptList = async (isIP) => {
     queriedObject.value = "IntegrationProcedure";
     processType = "Integration Procedure";
   }
-  let url = "/services/data/v" + apiVersion + getComponentQuery(orgNameSpace.value, queriedObject.value);
+  let url =
+    "/services/data/v" +
+    apiVersion +
+    getComponentQuery(orgNameSpace.value, queriedObject.value);
   // console.log('url --> '+url);
   try {
     const data = await performAPIcallout(url);
@@ -173,7 +181,10 @@ const getOmniScriptList = async (isIP) => {
 const getFlexCardList = async () => {
   dataLoading.value = true;
   queriedObject.value = "FlexCard";
-  let url = "/services/data/v" + apiVersion + getComponentQuery(orgNameSpace.value, queriedObject.value);
+  let url =
+    "/services/data/v" +
+    apiVersion +
+    getComponentQuery(orgNameSpace.value, queriedObject.value);
   try {
     const data = await performAPIcallout(url);
     //console.log('data --> ', JSON.stringify(data));
@@ -196,9 +207,12 @@ const getDataRaptorList = async () => {
   dataLoading.value = true;
   queriedObject.value = "DataRaptor";
 
-  let url = "/services/data/v" + apiVersion + getComponentQuery(orgNameSpace.value, queriedObject.value);
+  let url =
+    "/services/data/v" +
+    apiVersion +
+    getComponentQuery(orgNameSpace.value, queriedObject.value);
   try {
-    let versionHeader = 'VersionNumber'; // standard os version
+    let versionHeader = "VersionNumber"; // standard os version
     const data = await performAPIcallout(url);
     //console.log('data --> ', JSON.stringify(data));
     data?.records.forEach((record) => {
@@ -208,8 +222,8 @@ const getDataRaptorList = async () => {
     recordList.value = data?.records;
     recordTitle.value = DRloaded.value;
     //set version header for vlocity
-    if (orgNameSpace.value == 'vlocity_cmt') {
-      versionHeader = 'vlocity_cmt__Version__c';
+    if (orgNameSpace.value == "vlocity_cmt") {
+      versionHeader = "vlocity_cmt__Version__c";
     }
     // remove version from header
     tableHeaders.value = tableHeaders.value.filter(
@@ -282,13 +296,12 @@ const beautifyJSON = (jsonValue) => {
 //get namespace
 const getOrgNamspace = () => {
   if (sfHostURL.value) {
-    const namespace = localStorage.getItem(sfHostURL.value + "_" + 'ns');
+    const namespace = localStorage.getItem(sfHostURL.value + "_" + "ns");
     return namespace !== null ? namespace : null;
-  }
-  else {
+  } else {
     return null;
   }
-}
+};
 //code editor
 const responseJSON = ref(null);
 const requestJSON = ref(null);
@@ -305,7 +318,7 @@ const hitAPIcallout = async () => {
   let url;
   let body;
   let orgNameSpace = getOrgNamspace();
-  console.log('modalData.value -->'+JSON.stringify(modalData.value));
+  //console.log('modalData.value -->'+JSON.stringify(modalData.value));
   try {
     if (modalData.value?.queriedObject == "IntegrationProcedure") {
       url = `/services/apexrest/${orgNameSpace}/v1/integrationprocedure/${modalData.value.Type}_${modalData.value.SubType}`;
@@ -392,12 +405,16 @@ onMounted(async () => {
     <div class="flex justify-between mb-4">
       <TextDesc v-if="sfHostURL">Current Org : <span class="font-semibold">{{ sfHostURL }}</span>
       </TextDesc>
-      <TextDesc v-if="orgNameSpace" class="mr-3">Package : <span class="font-semibold">{{ orgNameSpace == 'omnistudio' ?
-        'Standard OmniStudio' : 'Vlocity OmniStudio' }}</span>
+      <TextDesc v-if="orgNameSpace" class="mr-3">Package :
+        <span class="font-semibold">{{
+          orgNameSpace == "omnistudio"
+            ? "Standard OmniStudio"
+            : "Vlocity OmniStudio"
+        }}</span>
       </TextDesc>
     </div>
 
-    <div class="flex space-x-2 ">
+    <div class="flex space-x-2">
       <PrimaryButton :isBlue="true" @click="getOmniScriptList(false)">
         Load OmniScript
       </PrimaryButton>
@@ -447,8 +464,10 @@ onMounted(async () => {
             Id,
             Name,
             iconColor,
-            Type,vlocity_cmt__Type__c,
-            SubType,vlocity_cmt__SubType__c
+            Type,
+            vlocity_cmt__Type__c,
+            SubType,
+            vlocity_cmt__SubType__c,
           }">
             <div class="flex justify-center text-center items-center my-1.5">
               <a :href="getSalesforceURL(orgIdentifier, sfHostURL, Id, queriedObject)
@@ -462,14 +481,14 @@ onMounted(async () => {
                 queriedObject == 'DataRaptor' ||
                 queriedObject == 'IntegrationProcedure'
               " @click="
-                openModal(
-                  queriedObject,
-                  Id,
-                  Type ?? vlocity_cmt__Type__c,
-                  SubType ?? vlocity_cmt__SubType__c,
-                  Name
-                )
-                " :icon="Icon_Execute" :isSquare="false" color="green" class="!p-1.5 ml-2"
+                  openModal(
+                    queriedObject,
+                    Id,
+                    Type ?? vlocity_cmt__Type__c,
+                    SubType ?? vlocity_cmt__SubType__c,
+                    Name
+                  )
+                  " :icon="Icon_Execute" :isSquare="false" color="green" class="!p-1.5 ml-2"
                 title="Execute with Payload" />
             </div>
           </template>

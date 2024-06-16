@@ -6,8 +6,6 @@
   "description": "Boost Salesforce OmniStudio Productivity with One-Click Access to IP, DR, Flexcards, and OmniScripts.",
   "permissions": [
     "storage",
-    "activeTab",
-    "tabs",
     "cookies"
   ],
   "host_permissions": [
