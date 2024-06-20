@@ -28,46 +28,6 @@ export let sfConn = {
         this.sessionId = message.key;
       }
     }
-    const IS_SANDBOX = "isSandbox";
-    if (localStorage.getItem(sfHost + "_" + IS_SANDBOX) == null) {
-      sfConn.rest("/services/data/v" + apiVersion + "/query/?q=SELECT+IsSandbox,+InstanceName+FROM+Organization").then(res => {
-        localStorage.setItem(sfHost + "_" + IS_SANDBOX, res.records[0].IsSandbox);
-        // localStorage.setItem(sfHost + "_orgInstance", res.records[0].InstanceName);
-      });
-    }
-    //Set namespace --> try Select Name, NamespacePrefix from ApexClass where Name = 'DRDataPackService'
-    if (localStorage.getItem(sfHost + "_" + 'ns') == null) {
-      sfConn.rest("/services/data/v" + apiVersion + "/tooling/query/?q=SELECT+SubscriberPackage.NamespacePrefix+FROM+InstalledSubscriberPackage")
-        .then(res => {
-          //console.log('namespace --> ' + JSON.stringify(res));
-          if (res?.size > 0 && res.records) {
-            const namespaces = res.records
-              .filter(record => record.SubscriberPackage.NamespacePrefix)
-              .map(record => record.SubscriberPackage.NamespacePrefix);
-  
-            let namespaceToSave = null;
-  
-            if (namespaces.includes('vlocity_cmt')) {
-              namespaceToSave = 'vlocity_cmt';
-            } else if (namespaces.includes('omnistudio')) {
-              namespaceToSave = 'omnistudio';
-            }
-  
-            if (namespaceToSave) {
-              localStorage.setItem(sfHost + "_" + 'ns', namespaceToSave);
-              console.log('Namespace saved:', namespaceToSave);
-            } else {
-              console.log('Target namespaces not found.');
-            }
-          } else {
-            console.log('No records found.');
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching namespaces:', error);
-        });
-    }
-    // setFavicon(sfHost);
   },
 
   async rest(url, { logErrors = true, method = "GET", api = "normal", body = undefined, bodyType = "json", responseType = "json", headers = {}, progressHandler = null } = {}) {
@@ -355,24 +315,6 @@ function showInvalidTokenBanner() {
   if (containerToShow) { containerToShow.classList.remove("hide"); }
   const containerToMask = document.getElementById("mainTabs");
   if (containerToMask) { containerToMask.classList.add("mask"); }
-}
-
-function setFavicon(sfHost) {
-  let fav = localStorage.getItem(sfHost + "_customFavicon");
-  if (fav) {
-    let link = document.querySelector("link[rel~='icon']");
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "icon";
-      document.head.appendChild(link);
-    }
-    //check if custom favicon from the extension or web
-    if (fav.indexOf("http") == -1) {
-      fav = "./images/favicons/" + fav + ".png";
-    }
-    link.href = fav;
-  }
-
 }
 
 export const formatDate = (dateTimeString) => {

@@ -5,11 +5,7 @@ import { ref, onMounted, shallowRef } from "vue";
 import { apiVersion, sfConn, formatDate } from "@/assets/helper";
 import { fetchRecords } from "@/assets/storageUtil";
 import { saveRecord } from "@/assets/storageUtil";
-import {
-  extractValue,
-  getSalesforceURL,
-  getComponentQuery,
-} from "@/assets/globalUtil";
+import { extractValue, getSalesforceURL, getComponentQuery } from "@/assets/globalUtil";
 import PrimaryButton from "../elements/PrimaryButton.vue";
 import TextInput from "../elements/TextInput.vue";
 import LoadingCircle from "../elements/LoadingCircle.vue";
@@ -37,6 +33,7 @@ const tableHeaders = ref([]);
 
 const recordTitle = ref("");
 const dataLoading = ref(false);
+const extLoading = ref(false);
 const executeLoadingBtn = ref(false);
 const sfHostURL = ref("");
 const queriedObject = ref("");
@@ -49,28 +46,29 @@ const IPloaded = ref("Integration Procedures Loaded" + " | " + pageTitle);
 const DRloaded = ref("DataRaptors Loaded" + " | " + pageTitle);
 const orgNameSpace = ref("");
 
-const initData = (url) => {
-  return new Promise((resolve, reject) => {
-    sfConn
-      .getSession(sfHostURL.value)
-      .then(() => {
-        // set org namespace
-        if (
-          !orgNameSpace.value &&
-          localStorage.getItem(sfHostURL.value + "_" + "ns")
-        ) {
-          orgNameSpace.value = getOrgNamspace();
-          setMainTableHeaders(orgNameSpace.value);
-        }
-      })
-      .catch((error) => {
-        console.error("Error getting session: ", error);
-        reject(error); // Reject the promise if there is an error getting the session
-      });
-  });
+const initData = async (url) => {
+  console.log('inside initData 1');
+  try {
+    await sfConn.getSession(url);
+    // Ensure the localStorage item is set
+    const ns = localStorage.getItem(url + "_" + "ns");
+    if (!orgNameSpace.value && ns) {
+      orgNameSpace.value = getOrgNamspace();
+      console.log('orgNameSpace.value 2 -> ' + orgNameSpace.value);
+      setMainTableHeaders();
+    }
+    else {
+      console.log('ns not found');
+    }
+
+  } catch (error) {
+    console.error("Error getting session: ", error);
+    throw error; // Throw error to propagate it to the caller
+  }
 };
 
 const performAPIcallout = (url) => {
+  // console.log('url --> '+url);
   return new Promise((resolve, reject) => {
     sfConn
       .getSession(sfHostURL.value)
@@ -118,7 +116,32 @@ const performPostAPIcallout = (url, obj) => {
   });
 };
 
-const setMainTableHeaders = (nameSpace) => {
+const getOrgNS = async (sfHost) => {
+  extLoading.value = true;
+  console.log('sfHost --> ' + sfHost);
+  let nsUrl = "/services/data/v" + apiVersion + "/query/?q=SELECT+Name,NamespacePrefix+FROM+ApexClass+WHERE+NAME='DRDataPackService'";
+  if (localStorage.getItem(sfHost + "_" + 'ns') == null) {
+    const nsResp = await performAPIcallout(nsUrl);
+    if (nsResp.totalSize == 1 && nsResp.done && nsResp.records.length > 0) {
+      localStorage.setItem(sfHost + "_" + 'ns', nsResp.records[0].NamespacePrefix);
+      console.log('Namespace saved:', nsResp.records[0].NamespacePrefix);
+      setMainTableHeaders(nsResp.records[0].NamespacePrefix);
+    }
+
+    let sandboxUrl = "/services/data/v" + apiVersion + "/query/?q=SELECT+IsSandbox,+InstanceName+FROM+Organization";
+    const IS_SANDBOX = "isSandbox";
+    const isSandBoxResp = await performAPIcallout(sandboxUrl);
+    if (localStorage.getItem(sfHost + "_" + IS_SANDBOX) == null) {
+      if (isSandBoxResp.records.length > 0) {
+        localStorage.setItem(sfHost + "_" + IS_SANDBOX, isSandBoxResp.records[0].IsSandbox);
+      }
+
+    }
+  }
+  extLoading.value = false;
+}
+
+const setMainTableHeaders = () => {
   tableHeaders.value = [
     { text: "Id", value: "Id" },
     { text: "Name", value: "Name", sortable: true },
@@ -159,7 +182,7 @@ const getOmniScriptList = async (isIP) => {
     "/services/data/v" +
     apiVersion +
     getComponentQuery(orgNameSpace.value, queriedObject.value);
-  // console.log('url --> '+url);
+  //  console.log('url --> '+url);
   try {
     const data = await performAPIcallout(url);
     //console.log('data --> ', JSON.stringify(data));
@@ -394,7 +417,8 @@ onMounted(async () => {
   orgIdentifier.value = extractValue(`https://${sfHostURL.value}`);
   storageRecList.value = await fetchRecords(sfHostURL.value);
   document.title = pageTitle;
-  initData(sfHost);
+  await getOrgNS(sfHost);
+  await initData(sfHost);
 });
 </script>
 
@@ -405,6 +429,7 @@ onMounted(async () => {
     <div class="flex justify-between mb-4">
       <TextDesc v-if="sfHostURL">Current Org : <span class="font-semibold">{{ sfHostURL }}</span>
       </TextDesc>
+
       <TextDesc v-if="orgNameSpace" class="mr-3">Package :
         <span class="font-semibold">{{
           orgNameSpace == "omnistudio"
@@ -412,9 +437,20 @@ onMounted(async () => {
             : "Vlocity OmniStudio"
         }}</span>
       </TextDesc>
+      <div v-else>
+        <TextDesc class="text-red-500 font-semibold" v-if="extLoading">
+          <PrimaryButton>
+            <LoadingCircle :cssStyle="'h-4 w-4 mr-2'">Fetching OmniStdio Package...</LoadingCircle>
+          </PrimaryButton>
+        </TextDesc>
+        <TextDesc class="text-red-500 font-semibold" v-else>
+          No OmniStudio Found
+        </TextDesc>
+      </div>
+
     </div>
 
-    <div class="flex space-x-2">
+    <div v-if="orgNameSpace" class="flex space-x-2">
       <PrimaryButton :isBlue="true" @click="getOmniScriptList(false)">
         Load OmniScript
       </PrimaryButton>
@@ -481,14 +517,14 @@ onMounted(async () => {
                 queriedObject == 'DataRaptor' ||
                 queriedObject == 'IntegrationProcedure'
               " @click="
-                  openModal(
-                    queriedObject,
-                    Id,
-                    Type ?? vlocity_cmt__Type__c,
-                    SubType ?? vlocity_cmt__SubType__c,
-                    Name
-                  )
-                  " :icon="Icon_Execute" :isSquare="false" color="green" class="!p-1.5 ml-2"
+                openModal(
+                  queriedObject,
+                  Id,
+                  Type ?? vlocity_cmt__Type__c,
+                  SubType ?? vlocity_cmt__SubType__c,
+                  Name
+                )
+                " :icon="Icon_Execute" :isSquare="false" color="green" class="!p-1.5 ml-2"
                 title="Execute with Payload" />
             </div>
           </template>

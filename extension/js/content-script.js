@@ -1,134 +1,348 @@
 /*global chrome*/
 let sfHostStr;
-// Wait for the page to fully load
+let objectsFound = [];
+
+// Listen for button events
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+  // Handle the "Find" button
+  if (request.msg == "findObjects") {
+    console.log('inside findObjects');
+    const respData = getOSCompList();
+    sendResponse({ status: 'success', data: respData });
+    return true;
+  }
+});
+
+
 window.addEventListener('load', function () {
   // Send a message to the background script
   chrome.runtime.sendMessage({ message: "getSfHost", url: location.href }, sfHost => {
     if (sfHost) {
-      // console.log('sf host --> ' + sfHost);
-      //alert('sf host active');
       sfHostStr = sfHost;
     }
   });
 
   // Fix Integration Procedure Execute Button
   if (window.location.href.includes('integrationproceduredesigner')) {
-    var element = document.querySelector('button.slds-button.slds-button--brand.slds-col_bump-left');
-    if (element) {
-      element.style.position = 'fixed';
-      element.style.top = '1rem';
-      element.style.right = '2rem';
+    const targetDiv = document.querySelector('.vloc-body.Theme3');
+
+    if (targetDiv) {
+      injectStyles();
+      targetDiv.classList.add('slds-grid--frame');
     }
   }
-  // Find the existing <ul> element in Salesforce
-  // Create a new button element inside the <li>
-  var button = document.createElement('button');
+
+  // Create the button and attach it to the DOM
+  const button = createButton();
+  attachButton(button);
+});
+
+function injectStyles() {
+  const style = document.createElement('style');
+  style.textContent = `
+    .slds-grid--frame {
+      min-width: auto !important;
+      max-width: 100% !important;
+      overflow: auto !important;
+      min-height: 100vh !important;
+    }
+    @keyframes gradientRotate {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 100% 100%; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function createButton() {
+  const button = document.createElement('button');
   button.id = 'sfHelperBtn';
   button.innerText = 'OS Helper';
-  // Set inline styles for the button
-  button.style.position = 'relative';
-  button.style.color = '#fff';
-  button.style.borderRadius = '1rem';
-  button.style.backgroundImage = 'linear-gradient(90deg, #0065ff, #6942ef, #6554c0, #008cff, #0065ff, #6942ef)';
-  button.style.backgroundSize = '400%';
-  button.style.backgroundPosition = '0% 0%';
-  button.style.border = 'none';
-  button.style.padding = '4px 10px';
+  Object.assign(button.style, {
+    position: 'relative',
+    color: '#fff',
+    borderRadius: '1rem',
+    backgroundImage: 'linear-gradient(90deg, #0065ff, #6942ef, #6554c0, #008cff, #0065ff, #6942ef)',
+    backgroundSize: '400%',
+    backgroundPosition: '0% 0%',
+    border: 'none',
+    padding: '4px 10px'
+  });
 
-  /// Define CSS animation keyframes
-  var animationKeyframes = `
-@keyframes gradientRotate {
-    0% {
-        background-position: 0% 0%;
-    }
-    100% {
-        background-position: 100% 100%;
-    }
-}
-`;
-
-  // Create a style element for animation keyframes
-  var animationStyle = document.createElement('style');
-  animationStyle.innerHTML = animationKeyframes;
-
-  // Add animation keyframes to the document head
-  document.head.appendChild(animationStyle);
-
-  // Apply hover animation
-  button.addEventListener('mouseenter', function () {
+  button.addEventListener('mouseenter', () => {
     button.style.animation = 'gradientRotate 2s infinite';
   });
 
-  // Remove hover animation when mouse leaves
-  button.addEventListener('mouseleave', function () {
+  button.addEventListener('mouseleave', () => {
     button.style.animation = 'none';
   });
-  // Create the SVG element for the icon
-  var svgIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+
+  const svgIcon = createSVGIcon();
+  button.appendChild(svgIcon);
+  button.addEventListener('click', sendMessageOpenTab);
+
+  return button;
+}
+
+function createSVGIcon() {
+  const svgIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svgIcon.setAttribute('class', 'slds-m-left_xx-small');
   svgIcon.setAttribute('aria-hidden', 'true');
   svgIcon.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  svgIcon.setAttribute('viewBox', '0 0 24 24'); // Adjust the viewBox as needed to fit your icon
+  svgIcon.setAttribute('viewBox', '0 0 24 24');
   svgIcon.setAttribute('width', '20');
   svgIcon.setAttribute('height', '20');
-  // Create the path element for the icon shape
-  var pathIcon = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  pathIcon.setAttribute('d', 'M4.4 19.425q-.5.2-.95-.088T3 18.5V14l8-2l-8-2V5.5q0-.55.45-.837t.95-.088l15.4 6.5q.625.275.625.925t-.625.925z'); // Example path data, replace it with your own SVG path data
-  pathIcon.setAttribute('fill', '#fff'); // Set the fill color
-  // Append the path element to the SVG element
-  svgIcon.appendChild(pathIcon);
-  // Append the SVG icon and the span to the button
-  button.appendChild(svgIcon);
-  // Add an event listener to the button
-  button.addEventListener('click', function () {
-    sendMessageOpenTab();
-  });
-  //Assing Button 
-  //Check Top Right Side Global Icons
-  var globalActionUL = document.getElementsByClassName("slds-global-actions")[0];
-  if (globalActionUL) {
-    initButton(globalActionUL, button);
-  }
-  // if class not found then wait for 3 seconds, let dom load and then init
-  else {
-    getGlobalActionUL(button);
-  }
-});
 
-function getGlobalActionUL(button) {
-  setTimeout(() => {
-    var globalActionUL = document.getElementsByClassName("slds-global-actions")[0];
-    // console.log('setTimeout globalActionUL --> ' + globalActionUL);
-    initButton(globalActionUL, button);
-  }, 3000); // Add delay for DOM loading
+  const pathIcon = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  pathIcon.setAttribute('d', 'M4.4 19.425q-.5.2-.95-.088T3 18.5V14l8-2l-8-2V5.5q0-.55.45-.837t.95-.088l15.4 6.5q.625.275.625.925t-.625.925z');
+  pathIcon.setAttribute('fill', '#fff');
+
+  svgIcon.appendChild(pathIcon);
+
+  return svgIcon;
 }
 
-const initButton = (globalActionUL, button) => {
-  // if its classic
+function attachButton(button) {
+  const globalActionUL = document.querySelector(".slds-global-actions");
+  if (globalActionUL) {
+    initButton(globalActionUL, button);
+  } else {
+    setTimeout(() => {
+      const delayedGlobalActionUL = document.querySelector(".slds-global-actions");
+      initButton(delayedGlobalActionUL, button);
+    }, 3000);
+  }
+}
+
+function initButton(globalActionUL, button) {
   if (!globalActionUL) {
     const navLinks = document.querySelector('.navLinks .linkElements');
     if (navLinks) {
       navLinks.appendChild(button);
     }
-  }
-  //if its lightning
-  else {
-    var newLi = document.createElement('li');
+  } else {
+    const newLi = document.createElement('li');
     newLi.className = 'slds-global-actions__item slds-grid';
     newLi.appendChild(button);
     globalActionUL.insertAdjacentElement('afterbegin', newLi);
   }
-
 }
 
-const sendMessageOpenTab = () => {
-  let msgOptions = {
-    host: sfHostStr
-  }
-  chrome.runtime.sendMessage({ message: "openAppTab", url: location.href, options: msgOptions }, item => {
+function sendMessageOpenTab() {
+  chrome.runtime.sendMessage({ message: "openAppTab", url: location.href, options: { host: sfHostStr } }, item => {
     if (item) {
-      // console.log('success');
+      //console.log('Tab opened successfully');
     }
   });
 }
 
+/*
+OmniStudio Comp Finder Section Starts
+*/
+
+function isVisible(element) {
+  if (!element) return true;
+  const style = window.getComputedStyle(element);
+  const visible = style.width !== "0" && style.height !== "0" && style.opacity !== "0" && style.display !== "none" && style.visibility !== "hidden";
+  return visible ? isVisible(element.parentElement) : false;
+}
+
+function isLwc(element) {
+  return element && element.tagName.includes("-");
+}
+
+// function isStandardLwc(element) {
+//   return element && isLwc(element) && element.tagName.startsWith("LIGHTNING-");
+// }
+
+//Ignore some common items and vlocity package lwc
+const exclusionList = ["C-ICON","C-NAVIGATE-ACTION"];
+function isCustomLwc(element) {
+  if (!isLwc(element)) return false;
+
+  const hasVlocityAttribute = Array.from(element.attributes).some(attr =>
+    attr.name.startsWith('vlocity_cmt-') ||
+    attr.name.startsWith('vlocity_ins-') ||
+    attr.name.startsWith('vlocity_ps-')
+  );
+
+  return !hasVlocityAttribute && element.tagName.startsWith("C-") && !exclusionList.includes(element.tagName);
+}
+
+function getCustomLwcName(element) {
+  const tagName = element.tagName.toLowerCase().replace(/^c-/, '');
+  const componentName = tagName.replace(/-./g, x => x[1].toUpperCase());
+  return componentName;
+}
+
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+// function isManagedLwc(element) {
+//   if (isLwc(element) && element.tagName.match("^(VLOCITY_CMT-|VLOCITY_INS-|VLOCITY_PS-)")) {
+//     console.log('element.tagName --> ' + element.tagName);
+//   }
+
+//   return element && isLwc(element) && element.tagName.match("^(VLOCITY_CMT-|VLOCITY_INS-|VLOCITY_PS-)");
+// }
+
+// function getManagedLwcName(element) {
+//   if (!isManagedLwc(element)) return;
+//   let name = element.localName.replace(/^(vlocity_cmt-|vlocity_ins-|vlocity_ps-)/gi, "");
+//   name = name.replace(/-./g, x => x[1].toUpperCase());
+//   return name;
+// }
+
+function isLwcOmniScript(element) {
+  return element && element.tagName == "ARTICLE" && element.classList && Array.from(element.classList).includes("omniscript-article");
+}
+
+function isOmniScript(element) {
+  if (element && element.tagName == "IFRAME") {
+    return !!getOmniScriptName(element);
+  }
+  return false;
+}
+
+function getOmniScriptName(element) {
+
+  if (isLwcOmniScript(element)) {
+    const lwc = getParentLwc(element);
+    let name = lwc.localName.replace(/^c-/gi, "");
+    name = name.replace(/-([^-]*)$/, "");
+    name = name.replace(/-./g, x => x[1].toUpperCase());
+    return name;
+  } else if (element && element.tagName == "IFRAME") {
+    let urlString = element.src;
+    if (urlString.endsWith('#/')) urlString = urlString.substring(0, urlString.length - 2);
+    const osType = getQueryParameter(urlString, 'OmniScriptType');
+    const osSubType = getQueryParameter(urlString, 'OmniScriptSubType');
+    if (osType && osSubType) return osType + " / " + osSubType;
+  }
+}
+
+function isFlexCard(element) {
+  return element && element.tagName.startsWith("C-CF-");
+}
+
+function isCard(element) {
+  return element && element.tagName === "DIV" && element.getAttribute("layout-name");
+}
+
+function getCardName(element) {
+  if (isCard(element)) return element.getAttribute("layout-name");
+  else if (isFlexCard(element)) {
+    let name = element.localName.replace(/^c-cf-/gi, "");
+    name = name.replace(/-./g, x => x[1].toUpperCase());
+    return name;
+  }
+}
+
+function getParentLwc(element) {
+  const parent = element.parentNode;
+  if (parent) {
+    return isLwc(parent) ? parent : getParentLwc(parent);
+  }
+}
+
+function getQueryParameter(urlString, attributeName) {
+  let u = urlString.replace('+', ' ');
+  try {
+    if (u.indexOf('%3D') != -1) u = unescape(u);
+    const pos = u.indexOf(attributeName);
+    if (pos == -1) return undefined;
+    let afterAttribute = u.substring(pos + attributeName.length + 1);
+    const afterAttribute2 = afterAttribute;
+    let pos2 = afterAttribute.indexOf('&');
+    if (pos2 != -1) afterAttribute = afterAttribute.substring(0, pos2);
+    else pos2 = u.length + 1;
+    const pos3 = afterAttribute2.indexOf('/');
+    if (pos3 != -1 && pos3 < pos2) afterAttribute = afterAttribute2.substring(0, pos3);
+    return decodeURIComponent(afterAttribute);
+  } catch (e) {
+    console.error(`Error extracting query parameter '${attributeName}' from URL '${urlString}' -> ${e}`);
+  }
+}
+
+function findOmniStudioComponents(doc) {
+  const all = doc.getElementsByTagName("*");
+  const objectsMap = new Map();
+
+  for (let i = 0; i < all.length; i++) {
+    const element = all[i];
+    let obj = null;
+    let key = null;
+
+    if (isCard(element) && isVisible(element)) {
+      obj = {
+        "type": "FlexCard",
+        "subtype": "AngularJS",
+        "name": getCardName(element),
+        "elementName": element.localName + "@" + element.getAttribute("layout-name"),
+      };
+      key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
+    } 
+    else if (isOmniScript(element) && isVisible(element)) {
+      obj = {
+        "type": "OmniScript",
+        "subtype": "AngularJS",
+        "name": getOmniScriptName(element),
+        "elementName": element.localName + "@" + getOmniScriptName(element),
+      };
+      key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
+    } 
+    else if (isLwcOmniScript(element) && isVisible(element)) {
+      obj = {
+        "type": "OmniScript",
+        "subtype": "LWC",
+        "name": getOmniScriptName(element), 
+        "elementName": getParentLwc(element).localName,
+      };
+      key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
+    } 
+    else if (isFlexCard(element) && isVisible(element)) {
+      obj = {
+        "type": "FlexCard",
+        "subtype": "LWC",
+        "name": getCardName(element),
+        "elementName": element.localName,
+      };
+      key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
+    } 
+    /*
+    else if (isCustomLwc(element) && isVisible(element)) {
+      obj = {
+        "type": "Custom",
+        "subtype": "LWC",
+        "name": getCustomLwcName(element),
+        "elementName": element.localName,
+      };
+      key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
+    } */
+
+    if (obj && !objectsMap.has(key)) {
+      objectsMap.set(key, obj);
+      objectsFound.push(obj);
+    }
+  }
+
+  return objectsFound;
+}
+
+function getOSCompList() {
+  objectsFound = [];
+  try {
+    console.log('inside getOSCompList');
+    findOmniStudioComponents(window.document);
+  } catch (e) {
+    console.error("Error occurred: " + e);
+    objectsFound.push({
+      'type': 'Error',
+      'msg': 'Error occurred: ' + e
+    });
+  }
+  console.log('objectsFound --> ' + JSON.stringify(objectsFound));
+  // Return the list of OmniStudio components
+  return objectsFound;
+}

@@ -1,0 +1,24 @@
+v1.0.0 - 13 June, 2024
+- Initial Release.
+- Supported for Vlocity OmniStudio.
+- Fetch and display OmniStudio Components (OmniScript, FlexCard, Integration Procedure, DataRaptor).
+
+v1.1.0 - 14 June, 2024
+- Minor bug fixes.
+
+v.1.2.0 - 16 June, 2024
+- Added support for both Standard as well as Vlocity OmniStudio.
+- Ability to execute IP, DR with payload.
+- UI enhancements.
+- Bug fixes for Sandbox.
+- Added Namespace logic.
+
+v.1.2.2 - 20 June, 2024
+- Added ability to find OmniStudio Components on active page (FlexCard, OmniScript)
+- Optimized logic to find Namespace.
+- Added Help Section, need to add more data.
+
+Parking Lot: Things to think about
+==================================
+1. Distinguish between LWC & OmniScript LWC Comp.
+

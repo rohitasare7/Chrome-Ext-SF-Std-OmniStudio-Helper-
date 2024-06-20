@@ -1,5 +1,8 @@
 /*global chrome*/
+//variables
 let sessionCookieData;
+
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.message == "getSfHost") {
     chrome.cookies.get({ url: request.url, name: "sid", storeId: sender.tab.cookieStoreId }, cookie => {
@@ -53,3 +56,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   return true;
 });
+
