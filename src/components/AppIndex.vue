@@ -81,7 +81,7 @@ const triggerEmail = () => {
     <div v-if="formattedData" class="mt-4">
       <div v-for="(subtypes, type) in formattedData" :key="type" class="mb-4">
         <div v-for="(items, subtype) in subtypes" :key="subtype" class="mb-4">
-          <h2 class="text-lg font-semibold mb-2">{{ type }}</h2>
+          <h2 class="text-lg font-semibold mb-2">{{ type }} - {{ subtype }}</h2>
           <div class="relative overflow-x-auto">
             <table class="w-full text-sm text-left rtl:text-right text-gray-500 border">
               <tbody>
