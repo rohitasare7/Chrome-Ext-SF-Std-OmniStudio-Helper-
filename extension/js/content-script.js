@@ -156,7 +156,7 @@ function isLwc(element) {
 // }
 
 //Ignore some common items and vlocity package lwc
-const exclusionList = ["C-ICON","C-NAVIGATE-ACTION"];
+const exclusionList = ["C-ICON", "C-NAVIGATE-ACTION"];
 function isCustomLwc(element) {
   if (!isLwc(element)) return false;
 
@@ -218,15 +218,15 @@ function getOmniScriptName(element) {
       // Extract components from the tag name using regex
       const regex = /forcegenerated-omni-script_-(.*?)___(.*?)___(.*?)___/;
       const matches = tagName.match(regex);
-      
+
       if (matches && matches.length >= 4) {
         const type = capitalizeFirstLetter(matches[1]);
         const subType = matches[2].split('-').map(capitalizeFirstLetter).join('');
-        return `${type} / ${subType}`;
+        return `${type}_${subType}`;
       }
       return undefined;
     }
-    
+
     // Existing LWC OmniScript handling
     const lwc = getParentLwc(element);
     let name = lwc.localName.replace(/^c-/gi, "");
@@ -238,7 +238,7 @@ function getOmniScriptName(element) {
     if (urlString.endsWith('#/')) urlString = urlString.substring(0, urlString.length - 2);
     const osType = getQueryParameter(urlString, 'OmniScriptType');
     const osSubType = getQueryParameter(urlString, 'OmniScriptSubType');
-    if (osType && osSubType) return osType + " / " + osSubType;
+    if (osType && osSubType) return osType + "_" + osSubType;
   }
 }
 
@@ -262,7 +262,7 @@ function getCardName(element) {
       // Extract components from the tag name using regex
       const regex = /forcegenerated-flex-card_-(.*?)___/;
       const matches = tagName.match(regex);
-      
+
       if (matches && matches.length >= 2) {
         // Convert kebab-case to PascalCase
         return matches[1].split('-').map(capitalizeFirstLetter).join('');
@@ -304,78 +304,143 @@ function getQueryParameter(urlString, attributeName) {
   }
 }
 
+function isStandardRuntimeComponent(element) {
+  return element && element.tagName && (
+    element.tagName.toLowerCase().includes("forcegenerated-omni-script") ||
+    element.tagName.toLowerCase().includes("forcegenerated-flex-card")
+  );
+}
+
 function findOmniStudioComponents(doc) {
   const all = doc.getElementsByTagName("*");
   const objectsMap = new Map();
+  const componentTracker = new Set(); // Track components by name to avoid duplicates
 
   for (let i = 0; i < all.length; i++) {
     const element = all[i];
+    if (!isVisible(element)) continue;
+
     let obj = null;
     let key = null;
+    let componentKey = null;
+    const tagName = element.tagName.toLowerCase();
 
-    if (isCard(element) && isVisible(element)) {
-      obj = {
-        "type": "FlexCard",
-        "subtype": "AngularJS",
-        "name": getCardName(element),
-        "elementName": element.localName + "@" + element.getAttribute("layout-name"),
-      };
-      key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
-    } 
-    else if (isOmniScript(element) && isVisible(element)) {
-      obj = {
-        "type": "OmniScript",
-        "subtype": "AngularJS",
-        "name": getOmniScriptName(element),
-        "elementName": element.localName + "@" + getOmniScriptName(element),
-      };
-      key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
-    } 
-    else if (isLwcOmniScript(element) && isVisible(element)) {
-      // Determine if it's standard runtime or LWC OmniScript
-      const isStandardRuntime = element.tagName.toLowerCase().includes("forcegenerated-omni-script");
-      obj = {
-        "type": "OmniScript",
-        "subtype": isStandardRuntime ? "StandardRuntime" : "LWC",
-        "name": getOmniScriptName(element),
-        "elementName": isStandardRuntime ? element.tagName : getParentLwc(element).localName,
-      };
-      key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
-    } 
-    else if (isFlexCard(element) && isVisible(element)) {
-      // Determine if it's standard runtime or LWC FlexCard
-      const isStandardRuntime = element.tagName.toLowerCase().includes("forcegenerated-flex-card");
-      obj = {
-        "type": "FlexCard",
-        "subtype": isStandardRuntime ? "StandardRuntime" : "LWC",
-        "name": getCardName(element),
-        "elementName": isStandardRuntime ? element.tagName : element.localName,
-      };
-      key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
+    // Check for standard runtime components first
+    if (isStandardRuntimeComponent(element)) {
+      if (tagName.includes("forcegenerated-omni-script")) {
+        const name = getOmniScriptName(element);
+        componentKey = `omnscript-${name.toLowerCase()}`;
+        console.log('OmniScript StandardRuntime --> ' + componentKey);
+        obj = {
+          "type": "OmniScript",
+          "subtype": "StandardRuntime",
+          "name": name,
+          "elementName": element.tagName
+        };
+      } else if (tagName.includes("forcegenerated-flex-card")) {
+        const name = getCardName(element);
+        componentKey = `flexcard-${name.toLowerCase()}`;
+        console.log('FlexCard StandardRuntime --> ' + componentKey);
+        obj = {
+          "type": "FlexCard",
+          "subtype": "StandardRuntime",
+          "name": name,
+          "elementName": element.tagName
+        };
+      }
+    }
+    // Check for other components if no standard runtime version exists
+    else {
+      if (isCard(element)) {
+        const name = getCardName(element);
+        componentKey = `flexcard-${name.toLowerCase()}`;
+        if (!componentTracker.has(componentKey)) {
+          obj = {
+            "type": "FlexCard",
+            "subtype": "AngularJS",
+            "name": name,
+            "elementName": element.localName + "@" + element.getAttribute("layout-name")
+          };
+        }
+      } else if (isOmniScript(element)) {
+        const name = getOmniScriptName(element);
+        componentKey = `omnscript-${name.toLowerCase()}`;
+        if (!componentTracker.has(componentKey)) {
+          obj = {
+            "type": "OmniScript",
+            "subtype": "AngularJS",
+            "name": name,
+            "elementName": element.localName + "@" + getOmniScriptName(element)
+          };
+        }
+      } else if (isLwcOmniScript(element)) {
+        const name = getOmniScriptName(element);
+        componentKey = `omnscript-${name.toLowerCase()}`;
+        console.log('OmniScript LWC --> ' + componentKey);
+        if (!componentTracker.has(componentKey)) {
+          obj = {
+            "type": "OmniScript",
+            "subtype": "LWC",
+            "name": name,
+            "elementName": getParentLwc(element).localName
+          };
+        }
+      } else if (isFlexCard(element)) {
+        const name = getCardName(element);
+        componentKey = `flexcard-${name.toLowerCase()}`;
+        console.log('FlexCard LWC --> ' + componentKey);
+        if (!componentTracker.has(componentKey)) {
+          obj = {
+            "type": "FlexCard",
+            "subtype": "LWC",
+            "name": name,
+            "elementName": element.localName
+          };
+        }
+      }
     }
 
-    if (obj && !objectsMap.has(key)) {
-      objectsMap.set(key, obj);
-      objectsFound.push(obj);
+    if (obj) {
+      key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`.toLowerCase();
+      if (!objectsMap.has(key)) {
+        objectsMap.set(key, obj);
+        componentTracker.add(componentKey);
+      }
     }
   }
 
-  return objectsFound;
+  return Array.from(objectsMap.values());
 }
 
+const removeDuplicatesByName = (data) => {
+  const seenNames = new Map();
+
+  // Iterate through the data and prioritize "StandardRuntime" subtype
+  data.forEach((item) => {
+    const lowerCaseName = item.name.toLowerCase();
+    if (!seenNames.has(lowerCaseName) || item.subtype === "StandardRuntime") {
+      seenNames.set(lowerCaseName, item);
+    }
+  });
+
+  // Return the unique items as an array
+  return Array.from(seenNames.values());
+};
+
 function getOSCompList() {
-  objectsFound = [];
   try {
     console.log('inside getOSCompList');
-    findOmniStudioComponents(window.document);
+    // Get components directly from findOmniStudioComponents
+    const components = findOmniStudioComponents(window.document);
+    console.log('Found components --> ' + JSON.stringify(components));
+    const finalCompList = removeDuplicatesByName(components);
+    console.log('finalCompList --> ' + JSON.stringify(finalCompList));
+    return finalCompList;
   } catch (e) {
     console.error("Error occurred: " + e);
-    objectsFound.push({
+    return [{
       'type': 'Error',
       'msg': 'Error occurred: ' + e
-    });
+    }];
   }
-  console.log('objectsFound --> ' + JSON.stringify(objectsFound));
-  // Return the list of OmniStudio components
-  return objectsFound;
 }
