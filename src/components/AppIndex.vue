@@ -22,7 +22,7 @@ const sendMessageOpenTab = () => {
       msg: "findObjects"
     }, function (response) {
       if (chrome.runtime.lastError) {
-        console.error('Error sending message:', chrome.runtime.lastError);
+        console.log('Error sending message:', chrome.runtime.lastError);
       } else {
         // console.log('Response from content script:', response);
         // Add your logic to handle the response here
@@ -32,7 +32,7 @@ const sendMessageOpenTab = () => {
           formattedData.value = [];
           formattedData.value = groupData(response.data);
         } else {
-          console.error('Failed to find objects');
+          console.log('Failed to find objects');
         }
       }
     });
@@ -67,6 +67,33 @@ const triggerEmail = () => {
   window.open('mailto:?subject=SF OmniStudio Helper Chrome Extension&body=' + shareMessage);
 }
 
+// const sendHighlightMessage = (elementName) => {
+//   try {
+//     const response = chrome.runtime.sendMessage({
+//       type: 'HIGHLIGHT_ELEMENT',
+//       elementName,
+//     });
+//     console.log('Response from content script:', response);
+//   } catch (error) {
+//     console.log('Error:', error);
+//   }
+// };
+
+const sendHighlightMessage = (elementName, msg) => {
+  // Send the message to the content script(s)
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    chrome.tabs.sendMessage(tabs[0].id, { msg, elementName }, function (response) {
+      if (chrome.runtime.lastError) {
+        console.log('Error sending message:', chrome.runtime.lastError);
+      } else {
+        if (response && response.status === 'success') {
+          console.log('sucess');
+        }
+      }
+    });
+  });
+}
+
 </script>
 
 <template>
@@ -85,8 +112,15 @@ const triggerEmail = () => {
           <div class="relative overflow-x-auto">
             <table class="w-full text-sm text-left rtl:text-right text-gray-500 border">
               <tbody>
-                <tr v-for="item in items" :key="item.name" class="bg-white border-b">
-                  <td class="px-4 py-2 font-medium text-gray-900 whitespace-nowrap">{{ item.name }}</td>
+                <tr v-for="item in items" :key="item.name" class="bg-white border-b hover:bg-gray-100">
+                  <td class="px-4 py-2 font-medium text-gray-900 whitespace-nowrap cursor-pointer"
+                    @mouseover="sendHighlightMessage(item.elementName, 'HIGHLIGHT_ELEMENT')"
+                    @mouseleave="sendHighlightMessage(item.elementName, 'REMOVE_HIGHLIGHT')">
+                    {{ item.name }}
+                    <!-- <PrimaryButton :isBlue="true" @click="sendHighlightMessage(item.elementName)" class="mt-2">
+                      Find OmniStudio Components
+                    </PrimaryButton> -->
+                  </td>
                 </tr>
               </tbody>
             </table>

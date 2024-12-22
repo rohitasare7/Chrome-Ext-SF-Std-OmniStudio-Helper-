@@ -156,7 +156,7 @@ function isLwc(element) {
 // }
 
 //Ignore some common items and vlocity package lwc
-const exclusionList = ["C-ICON","C-NAVIGATE-ACTION"];
+const exclusionList = ["C-ICON", "C-NAVIGATE-ACTION"];
 function isCustomLwc(element) {
   if (!isLwc(element)) return false;
 
@@ -261,7 +261,7 @@ function getQueryParameter(urlString, attributeName) {
     if (pos3 != -1 && pos3 < pos2) afterAttribute = afterAttribute2.substring(0, pos3);
     return decodeURIComponent(afterAttribute);
   } catch (e) {
-    console.error(`Error extracting query parameter '${attributeName}' from URL '${urlString}' -> ${e}`);
+    console.log(`Error extracting query parameter '${attributeName}' from URL '${urlString}' -> ${e}`);
   }
 }
 
@@ -282,7 +282,7 @@ function findOmniStudioComponents(doc) {
         "elementName": element.localName + "@" + element.getAttribute("layout-name"),
       };
       key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
-    } 
+    }
     else if (isOmniScript(element) && isVisible(element)) {
       obj = {
         "type": "OmniScript",
@@ -291,16 +291,16 @@ function findOmniStudioComponents(doc) {
         "elementName": element.localName + "@" + getOmniScriptName(element),
       };
       key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
-    } 
+    }
     else if (isLwcOmniScript(element) && isVisible(element)) {
       obj = {
         "type": "OmniScript",
         "subtype": "LWC",
-        "name": getOmniScriptName(element), 
+        "name": getOmniScriptName(element),
         "elementName": getParentLwc(element).localName,
       };
       key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
-    } 
+    }
     else if (isFlexCard(element) && isVisible(element)) {
       obj = {
         "type": "FlexCard",
@@ -309,7 +309,7 @@ function findOmniStudioComponents(doc) {
         "elementName": element.localName,
       };
       key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
-    } 
+    }
     /*
     else if (isCustomLwc(element) && isVisible(element)) {
       obj = {
@@ -336,7 +336,7 @@ function getOSCompList() {
     console.log('inside getOSCompList');
     findOmniStudioComponents(window.document);
   } catch (e) {
-    console.error("Error occurred: " + e);
+    console.log("Error occurred: " + e);
     objectsFound.push({
       'type': 'Error',
       'msg': 'Error occurred: ' + e
@@ -345,4 +345,58 @@ function getOSCompList() {
   console.log('objectsFound --> ' + JSON.stringify(objectsFound));
   // Return the list of OmniStudio components
   return objectsFound;
+}
+
+
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('inside event --> ' + JSON.stringify(message));
+  if (message.msg === 'HIGHLIGHT_ELEMENT') {
+    console.log('inside HIGHLIGHT_ELEMENT');
+    const response = highlightElement(message.elementName);
+    sendResponse(response);
+  } else if (message.msg === 'REMOVE_HIGHLIGHT') {
+    const response = removeHighlight(message.elementName);
+    sendResponse(response);
+  }
+  return false; // Not doing any async work
+});
+
+// Method to highlight the child element
+function highlightElement(selector) {
+  const parentElement = document.querySelector(selector); // Parent element
+  if (parentElement) {
+    // Select the first child div
+    const childDiv = parentElement.querySelector('div');
+    if (childDiv) {
+      childDiv.style.border = '3px solid #007bff'; // Apply border instead of outline
+      childDiv.style.padding = '2px'; // Optionally add padding to make it stand out more
+      childDiv.style.borderRadius = '5px'; // Optional: rounded corners for a softer look
+      childDiv.style.boxShadow = '0 4px 15px rgba(0, 123, 255, 0.5)'; // Subtle glow effect
+      return { success: true, message: 'Child element highlighted.' };
+    } else {
+      return { success: false, message: 'Child div not found.' };
+    }
+  } else {
+    return { success: false, message: 'Parent element not found.' };
+  }
+}
+
+// Method to remove the highlight from the child element
+function removeHighlight(selector) {
+  const parentElement = document.querySelector(selector); // Parent element
+  if (parentElement) {
+    const childDiv = parentElement.querySelector('div');
+    if (childDiv) {
+      childDiv.style.border = ''; // Remove border
+      childDiv.style.padding = ''; // Remove padding if added
+      childDiv.style.borderRadius = ''; // Remove border radius if added
+      childDiv.style.boxShadow = ''; // Remove box shadow if added
+      return { success: true, message: 'Highlight removed.' };
+    } else {
+      return { success: false, message: 'Child div not found.' };
+    }
+  } else {
+    return { success: false, message: 'Parent element not found.' };
+  }
 }
