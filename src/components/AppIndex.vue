@@ -5,12 +5,15 @@ import TextDesc from './elements/TextDesc.vue';
 import PrimaryButton from "../components/elements/PrimaryButton.vue";
 import SVGIconButton from "./elements/SVGIconButton.vue";
 import Icon_Help from "@/assets/icons/Icon_Help.vue";
+import LoadingCircle from "./elements/LoadingCircle.vue";
 
+const isLoading = ref(false);
 const formattedData = ref([]);
 const showHelp = ref(false);
 const webStoreURL = ref('https://chromewebstore.google.com/detail/salesforce-omnistudio-hel/gaogdijndgigjopjiidpemfglhokcmpe');
 
 const sendMessageOpenTab = () => {
+  isLoading.value = true;
   // Send the message to the content script(s)
   chrome.tabs.query({
     active: true,
@@ -24,39 +27,41 @@ const sendMessageOpenTab = () => {
       if (chrome.runtime.lastError) {
         console.log('Error sending message:', chrome.runtime.lastError);
       } else {
-        // console.log('Response from content script:', response);
         // Add your logic to handle the response here
         if (response && response.status === 'success') {
-          // console.log('Objects found:', response.data);
-          // foundObjList.value = response.data;
+
           formattedData.value = [];
           formattedData.value = groupData(response.data);
+          isLoading.value = false;
         } else {
           console.log('Failed to find objects');
         }
       }
     });
   });
+  isLoading.value = false;
 }
 
 const groupData = (data) => {
-  const grouped = {};
-
-  data.forEach(item => {
-    const { type, subtype } = item;
-    if (!grouped[type]) {
-      grouped[type] = {};
-    }
-    if (!grouped[type][subtype]) {
-      grouped[type][subtype] = [];
-    }
-    grouped[type][subtype].push(item);
-  });
-
-  return grouped;
+  try {
+    const grouped = {};
+    data.forEach(item => {
+      const { type, subtype } = item;
+      if (!grouped[type]) {
+        grouped[type] = {};
+      }
+      if (!grouped[type][subtype]) {
+        grouped[type][subtype] = [];
+      }
+      grouped[type][subtype].push(item);
+    });
+    return grouped;
+  }
+  catch (err) {
+    console.warn('groupData error --> ' + err);
+    isLoading.value = false;
+  }
 }
-
-
 
 const toggleShowHelp = () => {
   showHelp.value = !showHelp.value;
@@ -66,18 +71,6 @@ const triggerEmail = () => {
   const shareMessage = "Hey! checkout the Salesforce OmniStudio Helper Chrome extension at Official Chrome Web Store : " + webStoreURL.value;
   window.open('mailto:?subject=SF OmniStudio Helper Chrome Extension&body=' + shareMessage);
 }
-
-// const sendHighlightMessage = (elementName) => {
-//   try {
-//     const response = chrome.runtime.sendMessage({
-//       type: 'HIGHLIGHT_ELEMENT',
-//       elementName,
-//     });
-//     console.log('Response from content script:', response);
-//   } catch (error) {
-//     console.log('Error:', error);
-//   }
-// };
 
 const sendHighlightMessage = (elementName, msg) => {
   // Send the message to the content script(s)
@@ -102,13 +95,15 @@ const sendHighlightMessage = (elementName, msg) => {
 
   <div v-if="!showHelp">
     <PrimaryButton :isBlue="true" @click="sendMessageOpenTab" class="mt-2">
-      Find OmniStudio Components
+      <LoadingCircle v-if="isLoading" :cssStyle="'h-4 w-4 mr-2'">Loading components...
+      </LoadingCircle>
+      <p v-else>Find OmniStudio Components</p>
     </PrimaryButton>
 
     <div v-if="formattedData" class="mt-4">
       <div v-for="(subtypes, type) in formattedData" :key="type" class="mb-4">
         <div v-for="(items, subtype) in subtypes" :key="subtype" class="mb-4">
-          <h2 class="text-lg font-semibold mb-2">{{ type }}</h2>
+          <h2 class="text-lg font-semibold mb-2">{{ type }} - {{ subtype }}</h2>
           <div class="relative overflow-x-auto">
             <table class="w-full text-sm text-left rtl:text-right text-gray-500 border">
               <tbody>

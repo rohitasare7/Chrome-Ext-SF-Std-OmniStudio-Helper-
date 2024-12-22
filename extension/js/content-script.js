@@ -27,11 +27,11 @@ window.addEventListener('load', function () {
     const targetDiv = document.querySelector('.vloc-body.Theme3');
 
     if (targetDiv) {
-      injectStyles();
       targetDiv.classList.add('slds-grid--frame');
     }
   }
 
+  injectStyles();
   // Create the button and attach it to the DOM
   const button = createButton();
   attachButton(button);
@@ -195,8 +195,13 @@ function capitalizeFirstLetter(string) {
 // }
 
 function isLwcOmniScript(element) {
-  return element && element.tagName == "ARTICLE" && element.classList && Array.from(element.classList).includes("omniscript-article");
+  // Check for both LWC OmniScript article and standard runtime OmniScript
+  return (
+    (element && element.tagName == "ARTICLE" && element.classList && Array.from(element.classList).includes("omniscript-article")) ||
+    (element && element.tagName && element.tagName.toLowerCase().includes("forcegenerated-omni-script"))
+  );
 }
+
 
 function isOmniScript(element) {
   if (element && element.tagName == "IFRAME") {
@@ -206,8 +211,23 @@ function isOmniScript(element) {
 }
 
 function getOmniScriptName(element) {
-
   if (isLwcOmniScript(element)) {
+    // Handle standard runtime OmniScript
+    if (element.tagName.toLowerCase().includes("forcegenerated-omni-script")) {
+      const tagName = element.tagName.toLowerCase();
+      // Extract components from the tag name using regex
+      const regex = /forcegenerated-omni-script_-(.*?)___(.*?)___(.*?)___/;
+      const matches = tagName.match(regex);
+
+      if (matches && matches.length >= 4) {
+        const type = capitalizeFirstLetter(matches[1]);
+        const subType = matches[2].split('-').map(capitalizeFirstLetter).join('');
+        return `${type}_${subType}`;
+      }
+      return undefined;
+    }
+
+    // Existing LWC OmniScript handling
     const lwc = getParentLwc(element);
     let name = lwc.localName.replace(/^c-/gi, "");
     name = name.replace(/-([^-]*)$/, "");
@@ -218,12 +238,16 @@ function getOmniScriptName(element) {
     if (urlString.endsWith('#/')) urlString = urlString.substring(0, urlString.length - 2);
     const osType = getQueryParameter(urlString, 'OmniScriptType');
     const osSubType = getQueryParameter(urlString, 'OmniScriptSubType');
-    if (osType && osSubType) return osType + " / " + osSubType;
+    if (osType && osSubType) return osType + "_" + osSubType;
   }
 }
 
 function isFlexCard(element) {
-  return element && element.tagName.startsWith("C-CF-");
+  // Check for both LWC FlexCard and standard runtime FlexCard
+  return (
+    (element && element.tagName.startsWith("C-CF-")) ||
+    (element && element.tagName && element.tagName.toLowerCase().includes("forcegenerated-flex-card"))
+  );
 }
 
 function isCard(element) {
@@ -231,12 +255,27 @@ function isCard(element) {
 }
 
 function getCardName(element) {
-  if (isCard(element)) return element.getAttribute("layout-name");
-  else if (isFlexCard(element)) {
+  if (isFlexCard(element)) {
+    // Handle standard runtime FlexCard
+    if (element.tagName.toLowerCase().includes("forcegenerated-flex-card")) {
+      const tagName = element.tagName.toLowerCase();
+      // Extract components from the tag name using regex
+      const regex = /forcegenerated-flex-card_-(.*?)___/;
+      const matches = tagName.match(regex);
+
+      if (matches && matches.length >= 2) {
+        // Convert kebab-case to PascalCase
+        return matches[1].split('-').map(capitalizeFirstLetter).join('');
+      }
+      return undefined;
+    }
+    // Existing LWC FlexCard handling
     let name = element.localName.replace(/^c-cf-/gi, "");
     name = name.replace(/-./g, x => x[1].toUpperCase());
     return name;
   }
+  // Existing Card handling
+  if (isCard(element)) return element.getAttribute("layout-name");
 }
 
 function getParentLwc(element) {
@@ -265,14 +304,26 @@ function getQueryParameter(urlString, attributeName) {
   }
 }
 
+function isStandardRuntimeComponent(element) {
+  return element && element.tagName && (
+    element.tagName.toLowerCase().includes("forcegenerated-omni-script") ||
+    element.tagName.toLowerCase().includes("forcegenerated-flex-card")
+  );
+}
+
 function findOmniStudioComponents(doc) {
   const all = doc.getElementsByTagName("*");
   const objectsMap = new Map();
+  const componentTracker = new Set(); // Track components by name to avoid duplicates
 
   for (let i = 0; i < all.length; i++) {
     const element = all[i];
+    if (!isVisible(element)) continue;
+
     let obj = null;
     let key = null;
+    let componentKey = null;
+    const tagName = element.tagName.toLowerCase();
 
     if (isCard(element) && isVisible(element)) {
       obj = {
@@ -321,20 +372,42 @@ function findOmniStudioComponents(doc) {
       key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
     } */
 
-    if (obj && !objectsMap.has(key)) {
-      objectsMap.set(key, obj);
-      objectsFound.push(obj);
+    if (obj) {
+      key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`.toLowerCase();
+      if (!objectsMap.has(key)) {
+        objectsMap.set(key, obj);
+        componentTracker.add(componentKey);
+      }
     }
   }
 
-  return objectsFound;
+  return Array.from(objectsMap.values());
 }
 
+const removeDuplicatesByName = (data) => {
+  const seenNames = new Map();
+
+  // Iterate through the data and prioritize "StandardRuntime" subtype
+  data.forEach((item) => {
+    const lowerCaseName = item.name.toLowerCase();
+    if (!seenNames.has(lowerCaseName) || item.subtype === "StandardRuntime") {
+      seenNames.set(lowerCaseName, item);
+    }
+  });
+
+  // Return the unique items as an array
+  return Array.from(seenNames.values());
+};
+
 function getOSCompList() {
-  objectsFound = [];
   try {
     console.log('inside getOSCompList');
-    findOmniStudioComponents(window.document);
+    // Get components directly from findOmniStudioComponents
+    const components = findOmniStudioComponents(window.document);
+    console.log('Found components --> ' + JSON.stringify(components));
+    const finalCompList = removeDuplicatesByName(components);
+    console.log('finalCompList --> ' + JSON.stringify(finalCompList));
+    return finalCompList;
   } catch (e) {
     console.log("Error occurred: " + e);
     objectsFound.push({
