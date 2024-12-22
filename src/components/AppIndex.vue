@@ -72,10 +72,10 @@ const triggerEmail = () => {
   window.open('mailto:?subject=SF OmniStudio Helper Chrome Extension&body=' + shareMessage);
 }
 
-const sendHighlightMessage = (elementName, msg) => {
+const sendHighlightMessage = (elementName, msg, popupText) => {
   // Send the message to the content script(s)
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    chrome.tabs.sendMessage(tabs[0].id, { msg, elementName }, function (response) {
+    chrome.tabs.sendMessage(tabs[0].id, { msg, elementName, popupText }, function (response) {
       if (chrome.runtime.lastError) {
         console.log('Error sending message:', chrome.runtime.lastError);
       } else {
@@ -104,17 +104,15 @@ const sendHighlightMessage = (elementName, msg) => {
       <div v-for="(subtypes, type) in formattedData" :key="type" class="mb-4">
         <div v-for="(items, subtype) in subtypes" :key="subtype" class="mb-4">
           <h2 class="text-lg font-semibold mb-2">{{ type }} - {{ subtype }}</h2>
-          <div class="relative overflow-x-auto">
+          <div class="relative overflow-x-auto rounded-lg overflow-hidden">
             <table class="w-full text-sm text-left rtl:text-right text-gray-500 border">
               <tbody>
-                <tr v-for="item in items" :key="item.name" class="bg-white border-b hover:bg-gray-100">
-                  <td class="px-4 py-2 font-medium text-gray-900 whitespace-nowrap cursor-pointer"
-                    @mouseover="sendHighlightMessage(item.elementName, 'HIGHLIGHT_ELEMENT')"
-                    @mouseleave="sendHighlightMessage(item.elementName, 'REMOVE_HIGHLIGHT')">
+                <tr v-for="item in items" :key="item.name">
+                  <td
+                    class="px-4 py-2 bg-white text-gray-700 border-b hover:bg-blue-700 hover:text-white font-medium whitespace-nowrap cursor-pointer hover:shadow-2xl transition ease-in-out duration-300"
+                    @mouseover="sendHighlightMessage(item.elementName, 'HIGHLIGHT_ELEMENT', item.name)"
+                    @mouseleave="sendHighlightMessage(item.elementName, 'REMOVE_HIGHLIGHT', item.name)">
                     {{ item.name }}
-                    <!-- <PrimaryButton :isBlue="true" @click="sendHighlightMessage(item.elementName)" class="mt-2">
-                      Find OmniStudio Components
-                    </PrimaryButton> -->
                   </td>
                 </tr>
               </tbody>

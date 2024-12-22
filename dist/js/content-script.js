@@ -426,9 +426,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('inside event --> ' + JSON.stringify(message));
   if (message.msg === 'HIGHLIGHT_ELEMENT') {
     console.log('inside HIGHLIGHT_ELEMENT');
-    const response = highlightElement(message.elementName);
+    const response = highlightElement(message.elementName, message.popupText);
     sendResponse(response);
-  } else if (message.msg === 'REMOVE_HIGHLIGHT') {
+  }
+  else if (message.msg === 'REMOVE_HIGHLIGHT') {
     const response = removeHighlight(message.elementName);
     sendResponse(response);
   }
@@ -436,16 +437,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // Method to highlight the child element
-function highlightElement(selector) {
+function highlightElement(selector, elementName) {
   const parentElement = document.querySelector(selector); // Parent element
   if (parentElement) {
     // Select the first child div
     const childDiv = parentElement.querySelector('div');
     if (childDiv) {
+      const originalPosition = childDiv.style.position || null;
+      childDiv.setAttribute('osh-data-original-position', originalPosition);
+
       childDiv.style.border = '3px solid #007bff'; // Apply border instead of outline
       childDiv.style.padding = '2px'; // Optionally add padding to make it stand out more
       childDiv.style.borderRadius = '5px'; // Optional: rounded corners for a softer look
       childDiv.style.boxShadow = '0 4px 15px rgba(0, 123, 255, 0.5)'; // Subtle glow effect
+
+      // Create a tooltip element
+      const tooltip = document.createElement('div');
+      tooltip.classList.add('highlight-tooltip');
+      tooltip.innerText = elementName;
+
+      // Apply tooltip styles
+      tooltip.style.position = 'absolute';
+      tooltip.style.backgroundColor = '#007bff';
+      tooltip.style.color = 'white';
+      tooltip.style.padding = '5px 10px';
+      tooltip.style.borderRadius = '.5rem';
+      tooltip.style.fontSize = '12px';
+      tooltip.style.zIndex = '9999';
+      tooltip.style.boxShadow = '0 4px 15px rgba(0, 123, 255, 0.5)';
+
+      // Position the tooltip relative to the childDiv without modifying its position
+      const rect = childDiv.getBoundingClientRect();
+      tooltip.style.top = `${rect.top - 30}px`; // Position above the element
+      tooltip.style.left = `${rect.left}px`;
+
+      // Append the tooltip to the document body
+      document.body.appendChild(tooltip);
+
+      // Store the tooltip reference for removal later
+      childDiv._tooltipElement = tooltip;
+
       return { success: true, message: 'Child element highlighted.' };
     } else {
       return { success: false, message: 'Child div not found.' };
@@ -465,6 +496,14 @@ function removeHighlight(selector) {
       childDiv.style.padding = ''; // Remove padding if added
       childDiv.style.borderRadius = ''; // Remove border radius if added
       childDiv.style.boxShadow = ''; // Remove box shadow if added
+      // Remove the tooltip if it exists
+      if (childDiv._tooltipElement) {
+        const tooltip = childDiv._tooltipElement; // Retrieve the stored tooltip reference
+        if (tooltip.parentNode) {
+          tooltip.parentNode.removeChild(tooltip); // Remove tooltip from the DOM
+        }
+        delete childDiv._tooltipElement; // Clean up reference to avoid memory leaks
+      }
       return { success: true, message: 'Highlight removed.' };
     } else {
       return { success: false, message: 'Child div not found.' };
