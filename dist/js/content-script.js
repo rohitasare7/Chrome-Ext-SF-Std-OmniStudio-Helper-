@@ -6,7 +6,7 @@ let objectsFound = [];
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   // Handle the "Find" button
   if (request.msg == "findObjects") {
-    console.log('inside findObjects');
+    //console.log('inside findObjects');
     const respData = getOSCompList();
     sendResponse({ status: 'success', data: respData });
     return true;
@@ -361,7 +361,7 @@ function findOmniStudioComponents(doc) {
       };
       key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
     }
-    /*
+
     else if (isCustomLwc(element) && isVisible(element)) {
       obj = {
         "type": "Custom",
@@ -370,7 +370,7 @@ function findOmniStudioComponents(doc) {
         "elementName": element.localName,
       };
       key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`;
-    } */
+    }
 
     if (obj) {
       key = `${obj.type}-${obj.subtype}-${obj.name}-${obj.elementName}`.toLowerCase();
@@ -401,12 +401,12 @@ const removeDuplicatesByName = (data) => {
 
 function getOSCompList() {
   try {
-    console.log('inside getOSCompList');
+    //console.log('inside getOSCompList');
     // Get components directly from findOmniStudioComponents
     const components = findOmniStudioComponents(window.document);
-    console.log('Found components --> ' + JSON.stringify(components));
+    //console.log('Found components --> ' + JSON.stringify(components));
     const finalCompList = removeDuplicatesByName(components);
-    console.log('finalCompList --> ' + JSON.stringify(finalCompList));
+    //console.log('finalCompList --> ' + JSON.stringify(finalCompList));
     return finalCompList;
   } catch (e) {
     console.log("Error occurred: " + e);
@@ -415,7 +415,7 @@ function getOSCompList() {
       'msg': 'Error occurred: ' + e
     });
   }
-  console.log('objectsFound --> ' + JSON.stringify(objectsFound));
+  //console.log('objectsFound --> ' + JSON.stringify(objectsFound));
   // Return the list of OmniStudio components
   return objectsFound;
 }
@@ -423,9 +423,9 @@ function getOSCompList() {
 
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('inside event --> ' + JSON.stringify(message));
+  // console.log('inside event --> ' + JSON.stringify(message));
   if (message.msg === 'HIGHLIGHT_ELEMENT') {
-    console.log('inside HIGHLIGHT_ELEMENT');
+    //console.log('inside HIGHLIGHT_ELEMENT');
     const response = highlightElement(message.elementName, message.popupText);
     sendResponse(response);
   }

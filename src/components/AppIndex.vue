@@ -12,8 +12,15 @@ const formattedData = ref([]);
 const showHelp = ref(false);
 const webStoreURL = ref('https://chromewebstore.google.com/detail/salesforce-omnistudio-hel/gaogdijndgigjopjiidpemfglhokcmpe');
 
-const sendMessageOpenTab = () => {
+const fetchCompList = () => {
   isLoading.value = true;
+  sendMessageOpenTab();
+  setTimeout(() => {
+    isLoading.value = false;
+  }, 1000);
+}
+
+const sendMessageOpenTab = () => {
   // Send the message to the content script(s)
   chrome.tabs.query({
     active: true,
@@ -29,17 +36,16 @@ const sendMessageOpenTab = () => {
       } else {
         // Add your logic to handle the response here
         if (response && response.status === 'success') {
-
           formattedData.value = [];
           formattedData.value = groupData(response.data);
-          isLoading.value = false;
+          // isLoading.value = false;
         } else {
           console.log('Failed to find objects');
         }
       }
     });
   });
-  isLoading.value = false;
+  // isLoading.value = false;
 }
 
 const groupData = (data) => {
@@ -91,10 +97,10 @@ const sendHighlightMessage = (elementName, msg, popupText) => {
 
 <template>
 
-  <TextDesc class="font-semibold">Salesforce OmniStudio Helper</TextDesc>
+  <TextDesc class="font-semibold text-center !text-base mb-2">Salesforce OmniStudio Helper</TextDesc>
 
   <div v-if="!showHelp">
-    <PrimaryButton :isBlue="true" @click="sendMessageOpenTab" class="mt-2">
+    <PrimaryButton :isBlue="true" @click="fetchCompList" class="mt-2">
       <LoadingCircle v-if="isLoading" :cssStyle="'h-4 w-4 mr-2'">Loading components...
       </LoadingCircle>
       <p v-else>Find OmniStudio Components</p>
@@ -128,22 +134,34 @@ const sendHighlightMessage = (elementName, msg, popupText) => {
     <TextDesc>Open your Salesforce Org (Lightning Recommended) & click OS Helper button at right top corner.
       You can refer below image.
     </TextDesc>
-    <img src="../assets/howToScreen.png" class="mt-2 pt-2 pb-4 border rounded-md">
+    <img src="../assets/howToScreen.png" class="mt-2 py-2 border rounded-md">
 
     <TextDesc class="font-semibold text-sm mt-4 !text-blue-700 my-2">To Find OmniStudio Components</TextDesc>
     <TextDesc>Open your Salesforce Org Page on which you want to find components, Open Extension through Chrome Toolbar
       and click "Find OmniStudio Components"
     </TextDesc>
 
-    <div class="flex items-center justify-start mt-6 py-6 border-t">
-      <a class="text-blue-700 font-semibold mr-4" :href="webStoreURL" target="_blank">
-        <PrimaryButton isBlue="true">
-          Web Store Link
+    <div class="mt-2 py-4 border-t">
+      <TextDesc class="font-semibold text-sm my-2">Support Us by leaving a review or sharing this extension :
+      </TextDesc>
+      <div class="mt-4 flex items-center justify-start">
+        <a class="text-blue-700 font-semibold mr-4" :href="webStoreURL" target="_blank">
+          <PrimaryButton isBlue="true">
+            Web Store Link
+          </PrimaryButton>
+        </a>
+        <PrimaryButton isBlue="true" @click="triggerEmail">
+          Share Extension
         </PrimaryButton>
-      </a>
-      <PrimaryButton isBlue="true" @click="triggerEmail">
-        Share Extension
-      </PrimaryButton>
+      </div>
+    </div>
+
+    <div class="py-4 border-t">
+      <TextDesc class="font-semibold text-sm my-2">Want to Debug OmniScript &amp; FlexCard?</TextDesc>
+      <TextDesc class="text-sm">Try <a href="https://bit.ly/41BI2KG" target="_blank"
+          class="text-blue-700 font-semibold mr-4">Salesforce OmniStudio Network Logger</a></TextDesc>
+      <a href="https://bit.ly/41BI2KG" target="_blank"><img src="../assets/availableOnChrome.png"
+          class="mt-2 border rounded-md"></a>
     </div>
 
     <div class="mt-6 flex items-center justify-end">
@@ -151,6 +169,7 @@ const sendHighlightMessage = (elementName, msg, popupText) => {
         Go Back
       </PrimaryButton>
     </div>
+
 
   </div>
 
