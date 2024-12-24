@@ -131,10 +131,10 @@ const sendHighlightMessage = (elementName, msg, popupText) => {
 
   <div v-else class="bg-white p-4 rounded-xl mt-4">
     <TextDesc class="font-semibold text-sm !text-blue-700 mb-2">To Access OmniStudio Components</TextDesc>
-    <TextDesc>Open your Salesforce Org (Lightning Recommended) & click OS Helper button at right top corner.
+    <TextDesc>Open your Salesforce Org (Lightning Recommended) & click <b>OS Helper</b> button at right top corner.
       You can refer below image.
     </TextDesc>
-    <img src="../assets/howToScreen.png" class="mt-2 py-2 border rounded-md">
+    <img src="../assets/howToScreen.png" class="mt-2 py-2 pr-4 border rounded-lg">
 
     <TextDesc class="font-semibold text-sm mt-4 !text-blue-700 my-2">To Find OmniStudio Components</TextDesc>
     <TextDesc>Open your Salesforce Org Page on which you want to find components, Open Extension through Chrome Toolbar
