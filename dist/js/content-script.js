@@ -156,7 +156,7 @@ function isLwc(element) {
 // }
 
 //Ignore some common items and vlocity package lwc
-const exclusionList = ["C-ICON", "C-NAVIGATE-ACTION"];
+const exclusionList = ["C-ICON", "C-NAVIGATE-ACTION","C-BUTTON"];
 function isCustomLwc(element) {
   if (!isLwc(element)) return false;
 
