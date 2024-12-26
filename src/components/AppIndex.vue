@@ -12,41 +12,61 @@ const formattedData = ref([]);
 const showHelp = ref(false);
 const webStoreURL = ref('https://chromewebstore.google.com/detail/salesforce-omnistudio-hel/gaogdijndgigjopjiidpemfglhokcmpe');
 
-const fetchCompList = () => {
-  isLoading.value = true;
-  sendMessageOpenTab();
-  setTimeout(() => {
-    isLoading.value = false;
-  }, 1000);
-}
+// Helper function to wrap chrome.tabs.query in a Promise
+const getCurrentTab = () => {
+  return new Promise((resolve) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      resolve(tabs[0]);
+    });
+  });
+};
 
-const sendMessageOpenTab = () => {
-  // Send the message to the content script(s)
-  chrome.tabs.query({
-    active: true,
-    currentWindow: true
-  }, function (tabs) {
-    // console.log('inside 1' + JSON.stringify(tabs));
-    // Query all the OmniStudio objects
-    chrome.tabs.sendMessage(tabs[0].id, {
-      msg: "findObjects"
-    }, function (response) {
+// Helper function to wrap chrome.tabs.sendMessage in a Promise
+const sendTabMessage = (tabId, message) => {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(tabId, message, (response) => {
       if (chrome.runtime.lastError) {
-        console.log('Error sending message:', chrome.runtime.lastError);
+        reject(chrome.runtime.lastError);
       } else {
-        // Add your logic to handle the response here
-        if (response && response.status === 'success') {
-          formattedData.value = [];
-          formattedData.value = groupData(response.data);
-          // isLoading.value = false;
-        } else {
-          console.log('Failed to find objects');
-        }
+        resolve(response);
       }
     });
   });
-  // isLoading.value = false;
-}
+};
+
+// Main function to send message and handle response
+const sendMessageOpenTab = async () => {
+  try {
+    const tab = await getCurrentTab();
+    const response = await sendTabMessage(tab.id, { msg: "findObjects" });
+
+    if (response && response.status === 'success') {
+      formattedData.value = [];
+      formattedData.value = groupData(response.data);
+      console.log('formattedData.value --> ' + JSON.stringify(formattedData.value));
+      return true;
+    } else {
+      console.log('Failed to find objects');
+      return false;
+    }
+  } catch (error) {
+    console.log('Error sending message:', error);
+    return false;
+  }
+};
+
+// Main fetch function
+const fetchCompList = async () => {
+  isLoading.value = true;
+
+  try {
+    await sendMessageOpenTab();
+  } catch (error) {
+    console.error('Error in fetchCompList:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
 
 const groupData = (data) => {
   try {

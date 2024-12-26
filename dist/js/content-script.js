@@ -156,7 +156,7 @@ function isLwc(element) {
 // }
 
 //Ignore some common items and vlocity package lwc
-const exclusionList = ["C-ICON", "C-NAVIGATE-ACTION","C-BUTTON"];
+const exclusionList = ["C-ICON", "C-NAVIGATE-ACTION", "C-BUTTON"];
 function isCustomLwc(element) {
   if (!isLwc(element)) return false;
 
@@ -384,42 +384,32 @@ function findOmniStudioComponents(doc) {
   return Array.from(objectsMap.values());
 }
 
-const removeDuplicatesByName = (data) => {
-  const seenNames = new Map();
 
-  // Iterate through the data and prioritize "StandardRuntime" subtype
-  data.forEach((item) => {
-    const lowerCaseName = item.name.toLowerCase();
-    if (!seenNames.has(lowerCaseName) || item.subtype === "StandardRuntime") {
-      seenNames.set(lowerCaseName, item);
-    }
-  });
-
-  // Return the unique items as an array
-  return Array.from(seenNames.values());
+const removeDuplicates = (data, nameKey = 'name') => {
+  return Array.from(
+    data.reduce((map, item) => {
+      const key = item[nameKey].toLowerCase();
+      if (!map.has(key) || item.subtype === "StandardRuntime") {
+        map.set(key, item);
+      }
+      return map;
+    }, new Map()).values()
+  );
 };
 
+//Main Logic to Fetch Comp List
 function getOSCompList() {
   try {
-    //console.log('inside getOSCompList');
-    // Get components directly from findOmniStudioComponents
     const components = findOmniStudioComponents(window.document);
-    //console.log('Found components --> ' + JSON.stringify(components));
-    const finalCompList = removeDuplicatesByName(components);
-    //console.log('finalCompList --> ' + JSON.stringify(finalCompList));
-    return finalCompList;
-  } catch (e) {
-    console.log("Error occurred: " + e);
-    objectsFound.push({
-      'type': 'Error',
-      'msg': 'Error occurred: ' + e
-    });
+    return removeDuplicates(
+      removeDuplicates(components, 'name'),
+      'elementName'
+    );
+  } catch (error) {
+    console.error("Error in getOSCompList:", error);
+    return [{ type: 'Error', msg: `Error occurred: ${error}` }];
   }
-  //console.log('objectsFound --> ' + JSON.stringify(objectsFound));
-  // Return the list of OmniStudio components
-  return objectsFound;
 }
-
 
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
