@@ -272,7 +272,9 @@ function getCardName(element) {
     // Existing LWC FlexCard handling
     let name = element.localName.replace(/^c-cf-/gi, "");
     name = name.replace(/-./g, x => x[1].toUpperCase());
+    name = name.charAt(0).toUpperCase() + name.slice(1);
     return name;
+
   }
   // Existing Card handling
   if (isCard(element)) return element.getAttribute("layout-name");
@@ -386,8 +388,24 @@ function findOmniStudioComponents(doc) {
 
 
 const removeDuplicates = (data, nameKey = 'name') => {
+  // First filter out Custom types if a non-Custom version exists
+  const filteredData = data.reduce((acc, item) => {
+    const key = item[nameKey].toLowerCase();
+    const existing = acc.find(e => e[nameKey].toLowerCase() === key);
+
+    if (!existing) {
+      acc.push(item);
+    } else if (existing.type === 'Custom' && item.type !== 'Custom') {
+      // Replace Custom type with non-Custom type
+      const index = acc.indexOf(existing);
+      acc[index] = item;
+    }
+    return acc;
+  }, []);
+
+  // Then handle StandardRuntime priority
   return Array.from(
-    data.reduce((map, item) => {
+    filteredData.reduce((map, item) => {
       const key = item[nameKey].toLowerCase();
       if (!map.has(key) || item.subtype === "StandardRuntime") {
         map.set(key, item);
@@ -397,7 +415,6 @@ const removeDuplicates = (data, nameKey = 'name') => {
   );
 };
 
-//Main Logic to Fetch Comp List
 function getOSCompList() {
   try {
     const components = findOmniStudioComponents(window.document);

@@ -11,7 +11,7 @@ const isLoading = ref(false);
 const formattedData = ref([]);
 const showHelp = ref(false);
 const webStoreURL = ref('https://chromewebstore.google.com/detail/salesforce-omnistudio-hel/gaogdijndgigjopjiidpemfglhokcmpe');
-
+const isListEmpty = ref(false);
 // Helper function to wrap chrome.tabs.query in a Promise
 const getCurrentTab = () => {
   return new Promise((resolve) => {
@@ -41,9 +41,16 @@ const sendMessageOpenTab = async () => {
     const response = await sendTabMessage(tab.id, { msg: "findObjects" });
 
     if (response && response.status === 'success') {
+      //console.log('formattedData.value --> ' + JSON.stringify(response.data));
+      if (response?.data?.length === 0) {
+        isListEmpty.value = true;
+      }
+      else {
+        isListEmpty.value = false;
+      }
+
       formattedData.value = [];
       formattedData.value = groupData(response.data);
-      console.log('formattedData.value --> ' + JSON.stringify(formattedData.value));
       return true;
     } else {
       console.log('Failed to find objects');
@@ -125,6 +132,10 @@ const sendHighlightMessage = (elementName, msg, popupText) => {
       </LoadingCircle>
       <p v-else>Find OmniStudio Components</p>
     </PrimaryButton>
+
+    <div v-if="isListEmpty" class="bg-white p-4 rounded-xl mt-4">
+      <TextDesc class="font-semibold text-sm !text-gray-700">No OmniStudio Components Found</TextDesc>
+    </div>
 
     <div v-if="formattedData" class="mt-4">
       <div v-for="(subtypes, type) in formattedData" :key="type" class="mb-4">
